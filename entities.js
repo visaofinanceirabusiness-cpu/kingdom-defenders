@@ -22,11 +22,23 @@ class Enemy {
     this.radius = def.radius;
     this.alive = true;
     this.reachedCastle = false;
-    this.slowFactor = 1; // reservado para fases futuras (congelación)
+    this.speedMultiplier = 1; // 1 = velocidad normal, <1 = ralentizado
+    this.slowTimer = 0; // segundos restantes de ralentización
+  }
+
+  applySlow(factor, duration) {
+    // Un golpe de ralentización nuevo siempre refresca la duración (no se acumulan).
+    this.speedMultiplier = factor;
+    this.slowTimer = duration;
   }
 
   update(dt) {
     if (!this.alive) return;
+
+    if (this.slowTimer > 0) {
+      this.slowTimer -= dt;
+      if (this.slowTimer <= 0) this.speedMultiplier = 1;
+    }
 
     const target = this.path[this.waypointIndex];
     if (!target) {
@@ -38,7 +50,7 @@ class Enemy {
     const dx = target.x - this.x;
     const dy = target.y - this.y;
     const dist = Math.hypot(dx, dy);
-    const step = this.speed * this.slowFactor * dt;
+    const step = this.speed * this.speedMultiplier * dt;
 
     if (dist <= step) {
       this.x = target.x;
@@ -76,6 +88,14 @@ class Enemy {
     ctx.strokeStyle = d.darkColor;
     ctx.stroke();
 
+    // tinte azulado si está ralentizado
+    if (this.slowTimer > 0) {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(120,180,255,0.35)";
+      ctx.fill();
+    }
+
     // ojos (le da vida sin necesitar sprites)
     ctx.fillStyle = "#fff2c2";
     ctx.beginPath();
@@ -100,7 +120,10 @@ class Enemy {
 // Projectile
 // ---------------------------------------------------------------------------
 class Projectile {
-  constructor(x, y, target, damage, speed, color) {
+  // options (todas opcionales, data-driven desde TOWER_TYPES):
+  //   slowFactor/slowDuration -> ralentiza al objetivo impactado.
+  //   splashRadius/maxTargets -> también daña otros enemigos cercanos al impacto.
+  constructor(x, y, target, damage, speed, color, options) {
     this.x = x;
     this.y = y;
     this.target = target;
@@ -108,9 +131,31 @@ class Projectile {
     this.speed = speed;
     this.color = color;
     this.alive = true;
+    const opts = options || {};
+    this.slowFactor = opts.slowFactor || null;
+    this.slowDuration = opts.slowDuration || 0;
+    this.splashRadius = opts.splashRadius || 0;
+    this.maxTargets = opts.maxTargets || 1;
   }
 
-  update(dt) {
+  _onImpact(enemies) {
+    this.target.takeDamage(this.damage);
+    if (this.slowFactor) this.target.applySlow(this.slowFactor, this.slowDuration);
+
+    if (this.splashRadius > 0 && this.maxTargets > 1 && enemies) {
+      let hits = 1;
+      for (const e of enemies) {
+        if (hits >= this.maxTargets) break;
+        if (e === this.target || !e.alive) continue;
+        if (Math.hypot(e.x - this.x, e.y - this.y) <= this.splashRadius) {
+          e.takeDamage(this.damage);
+          hits++;
+        }
+      }
+    }
+  }
+
+  update(dt, enemies) {
     if (!this.alive) return;
     if (!this.target || !this.target.alive) {
       this.alive = false;
@@ -123,7 +168,9 @@ class Projectile {
     const step = this.speed * dt;
 
     if (dist <= step) {
-      this.target.takeDamage(this.damage);
+      this.x = this.target.x;
+      this.y = this.target.y;
+      this._onImpact(enemies);
       this.alive = false;
     } else {
       this.x += (dx / dist) * step;
@@ -153,11 +200,49 @@ class Tower {
     this.def = def;
     this.x = x;
     this.y = y;
-    this.range = def.range;
-    this.damage = def.damage;
-    this.fireRate = def.fireRate; // disparos/seg
+    this.levelIndex = 0;
     this.cooldown = 0;
     this.target = null;
+
+    const level0 = def.levels[0];
+    this.totalInvested = level0.cost;
+    this._applyLevelStats(level0);
+  }
+
+  _applyLevelStats(levelDef) {
+    this.damage = levelDef.damage;
+    this.range = levelDef.range;
+    this.fireRate = levelDef.fireRate; // disparos/seg
+  }
+
+  get level() {
+    return this.levelIndex + 1;
+  }
+
+  get maxLevel() {
+    return this.def.levels.length;
+  }
+
+  canUpgrade() {
+    return this.levelIndex < this.maxLevel - 1;
+  }
+
+  nextUpgradeCost() {
+    return this.canUpgrade() ? this.def.levels[this.levelIndex + 1].cost : null;
+  }
+
+  upgrade() {
+    if (!this.canUpgrade()) return false;
+    this.levelIndex++;
+    const levelDef = this.def.levels[this.levelIndex];
+    this.totalInvested += levelDef.cost;
+    this._applyLevelStats(levelDef);
+    return true;
+  }
+
+  sellValue() {
+    const ratio = this.def.sellRefund != null ? this.def.sellRefund : 0.6;
+    return Math.round(this.totalInvested * ratio);
   }
 
   findTarget(enemies) {
@@ -190,7 +275,12 @@ class Tower {
 
     if (this.target && this.cooldown <= 0) {
       projectiles.push(
-        new Projectile(this.x, this.y, this.target, this.damage, this.def.projectileSpeed, this.def.projectileColor)
+        new Projectile(this.x, this.y, this.target, this.damage, this.def.projectileSpeed, this.def.projectileColor, {
+          slowFactor: this.def.slowFactor,
+          slowDuration: this.def.slowDuration,
+          splashRadius: this.def.splashRadius,
+          maxTargets: this.def.maxTargets
+        })
       );
       this.cooldown = 1 / this.fireRate;
     }
@@ -229,15 +319,25 @@ class Tower {
     ctx.fill();
     ctx.stroke();
 
-    // dirección hacia el objetivo (arquero apuntando)
+    // dirección hacia el objetivo (arma apuntando)
     if (this.target && this.target.alive) {
       const angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
-      ctx.strokeStyle = "#f2e2a8";
+      ctx.strokeStyle = this.def.projectileColor;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(this.x, this.y - 6);
       ctx.lineTo(this.x + Math.cos(angle) * 22, this.y - 6 + Math.sin(angle) * 22);
       ctx.stroke();
+    }
+
+    // pips de nivel
+    const pipsY = this.y - 46;
+    const pipsStartX = this.x - ((this.maxLevel - 1) * 7) / 2;
+    for (let i = 0; i < this.maxLevel; i++) {
+      ctx.beginPath();
+      ctx.arc(pipsStartX + i * 7, pipsY, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = i <= this.levelIndex ? "#e0b23a" : "rgba(255,255,255,0.25)";
+      ctx.fill();
     }
   }
 }

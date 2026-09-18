@@ -1,6 +1,7 @@
 /* =========================================================================
-   KINGDOM DEFENDERS — GAME (Fase 1)
-   Motor principal: estado del juego, loop, oleadas, castillo, input, render.
+   KINGDOM DEFENDERS — GAME
+   Motor principal: estado del juego, loop, oleadas, castillo, economía,
+   selección/mejora/venta de torres, input, render.
    Lee toda su data de config.js. No hardcodea números de balance.
    ========================================================================= */
 
@@ -19,9 +20,9 @@ class Game {
     this.enemies = [];
     this.projectiles = [];
 
-    this.selectedTowerType = "archer"; // Fase 1: única torre disponible
-    this.selectedBuildSpot = null;
-    this.occupiedSpots = new Set();
+    this.selectedTowerType = Object.keys(TOWER_TYPES)[0]; // torre elegida en el picker para construir
+    this.spotTowers = new Map(); // "x,y" -> Tower construida en ese punto
+    this.selectedTower = null; // torre construida seleccionada (panel mejorar/vender)
 
     this.state = "waiting"; // waiting | countdown | wave | victory | defeat
     this.currentWaveIndex = 0;
@@ -56,27 +57,82 @@ class Game {
   }
 
   _handleClick(x, y) {
-    const spot = this._spotAt(x, y);
-    if (!spot) return;
-
-    const key = `${spot.x},${spot.y}`;
-    if (this.occupiedSpots.has(key)) return; // ya construida
-
-    const def = TOWER_TYPES[this.selectedTowerType];
-    if (this.gold < def.cost) {
-      this._setMessage(`Oro insuficiente para ${def.name} (cuesta ${def.cost}).`);
+    const existingTower = this._towerAt(x, y);
+    if (existingTower) {
+      this._selectTower(existingTower);
       return;
     }
 
-    this.gold -= def.cost;
-    this.towers.push(new Tower(this.selectedTowerType, spot.x, spot.y));
-    this.occupiedSpots.add(key);
+    const spot = this._spotAt(x, y);
+    if (!spot) {
+      this._deselectTower();
+      return;
+    }
+
+    const key = `${spot.x},${spot.y}`;
+    if (this.spotTowers.has(key)) return; // ya construida (se selecciona por _towerAt)
+
+    const def = TOWER_TYPES[this.selectedTowerType];
+    const cost = def.levels[0].cost;
+    if (this.gold < cost) {
+      this._setMessage(`Oro insuficiente para ${def.name} (cuesta ${cost}).`);
+      return;
+    }
+
+    this.gold -= cost;
+    const tower = new Tower(this.selectedTowerType, spot.x, spot.y);
+    this.towers.push(tower);
+    this.spotTowers.set(key, tower);
     this._updateHUD();
   }
 
   _spotAt(x, y) {
     const radius = 26;
     return this.map.buildSpots.find((s) => Math.hypot(s.x - x, s.y - y) <= radius) || null;
+  }
+
+  _towerAt(x, y) {
+    const radius = 24;
+    return this.towers.find((t) => Math.hypot(t.x - x, t.y - y) <= radius) || null;
+  }
+
+  // -----------------------------------------------------------------------
+  // Selección de torre / panel de mejora
+  // -----------------------------------------------------------------------
+  _selectTower(tower) {
+    this.selectedTower = tower;
+    this._updateTowerPanel();
+  }
+
+  _deselectTower() {
+    this.selectedTower = null;
+    this._updateTowerPanel();
+  }
+
+  upgradeSelectedTower() {
+    const tower = this.selectedTower;
+    if (!tower || !tower.canUpgrade()) return;
+    const cost = tower.nextUpgradeCost();
+    if (this.gold < cost) {
+      this._setMessage(`Oro insuficiente para mejorar (cuesta ${cost}).`);
+      return;
+    }
+    this.gold -= cost;
+    tower.upgrade();
+    this._updateHUD();
+    this._updateTowerPanel();
+  }
+
+  sellSelectedTower() {
+    const tower = this.selectedTower;
+    if (!tower) return;
+    this.gold += tower.sellValue();
+    this.towers = this.towers.filter((t) => t !== tower);
+    for (const [key, t] of this.spotTowers) {
+      if (t === tower) this.spotTowers.delete(key);
+    }
+    this._deselectTower();
+    this._updateHUD();
   }
 
   // -----------------------------------------------------------------------
@@ -171,7 +227,7 @@ class Game {
       tower.update(dt, this.enemies, this.projectiles);
     }
 
-    for (const proj of this.projectiles) proj.update(dt);
+    for (const proj of this.projectiles) proj.update(dt, this.enemies);
 
     // Recompensas por enemigos muertos por daño (no los que llegaron al castillo)
     for (const enemy of this.enemies) {
@@ -246,6 +302,38 @@ class Game {
     if (h.countdown) {
       h.countdown.textContent = this.state === "countdown" ? Math.ceil(this.countdown) : "";
     }
+    if (this.selectedTower) this._updateTowerPanel();
+  }
+
+  _updateTowerPanel() {
+    const h = this.hud;
+    if (!h.towerPanel) return;
+    const tower = this.selectedTower;
+
+    if (!tower) {
+      h.towerPanel.classList.add("hidden");
+      return;
+    }
+
+    h.towerPanel.classList.remove("hidden");
+    h.towerPanelName.textContent = `${tower.def.icon} ${tower.def.name}`;
+    h.towerPanelLevel.textContent = `Nivel ${tower.level} / ${tower.maxLevel}`;
+    h.towerPanelStats.innerHTML = `
+      <p>Daño: ${tower.damage}</p>
+      <p>Alcance: ${Math.round(tower.range)}</p>
+      <p>Velocidad: ${tower.fireRate.toFixed(2)}/s</p>
+    `;
+
+    if (tower.canUpgrade()) {
+      const cost = tower.nextUpgradeCost();
+      h.towerPanelUpgradeBtn.disabled = this.gold < cost;
+      h.towerPanelUpgradeBtn.textContent = `Mejorar (${cost} 💰)`;
+      h.towerPanelUpgradeBtn.classList.remove("hidden");
+    } else {
+      h.towerPanelUpgradeBtn.classList.add("hidden");
+    }
+
+    h.towerPanelSellBtn.textContent = `Vender (+${tower.sellValue()} 💰)`;
   }
 
   _showEndScreen(victory) {
@@ -268,7 +356,8 @@ class Game {
     this.towers = [];
     this.enemies = [];
     this.projectiles = [];
-    this.occupiedSpots.clear();
+    this.spotTowers.clear();
+    this._deselectTower();
     this.state = "waiting";
     this.currentWaveIndex = 0;
     this.enemiesDefeated = 0;
@@ -292,7 +381,7 @@ class Game {
     this._drawBuildSpots(ctx);
     this._drawCastle(ctx);
 
-    for (const tower of this.towers) tower.draw(ctx, false);
+    for (const tower of this.towers) tower.draw(ctx, tower === this.selectedTower);
     for (const enemy of this.enemies) enemy.draw(ctx);
     for (const proj of this.projectiles) proj.draw(ctx);
   }
@@ -339,7 +428,7 @@ class Game {
   _drawBuildSpots(ctx) {
     for (const spot of this.map.buildSpots) {
       const key = `${spot.x},${spot.y}`;
-      if (this.occupiedSpots.has(key)) continue;
+      if (this.spotTowers.has(key)) continue;
       ctx.beginPath();
       ctx.arc(spot.x, spot.y, 22, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255, 230, 150, 0.18)";

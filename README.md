@@ -19,7 +19,7 @@ Abrir `index.html` directamente en el navegador, o servir la carpeta con cualqui
 ## Progreso por fases
 
 - [x] **Fase 1** — núcleo jugable: mapa, camino, castillo, 1 enemigo (Goblin), 1 torre (Arqueros), sistema de ataque, sistema de oleadas, victoria/derrota.
-- [ ] **Fase 2** — oro gastable (mejoras y venta de torres), nuevas torres (Guerreros, Magos), nuevos enemigos (Orco), oleada 2 con mezcla de enemigos.
+- [x] **Fase 2** — economía activa: mejora y venta de torres (con niveles), Torre de Guerreros (ralentiza), Torre de Magos (daño en área), enemigo Orco, Oleada 2 con mezcla de enemigos.
 - [ ] **Fase 3** — XP, nivel del jugador, desbloqueos, habilidades especiales.
 - [ ] **Fase 4** — jefes, nuevos mapas, progresión avanzada.
 - [ ] **Fase 5** — animaciones, efectos, sonido, pulido visual, responsive táctil, guardado.

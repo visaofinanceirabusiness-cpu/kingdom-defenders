@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kingdom Defenders — Fase 1</title>
+<title>Kingdom Defenders — Fase 2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&display=swap" rel="stylesheet">
@@ -27,12 +27,21 @@
 
   <canvas id="gameCanvas" width="960" height="540"></canvas>
 
-  <div class="hud-bottom">
-    <div class="tower-picker">
-      <button class="tower-btn is-active" id="towerArcher" title="Torre de Arqueros">
-        🏹<span class="cost">50</span>
-      </button>
+  <div class="tower-panel hidden" id="towerPanel">
+    <div class="tower-panel__head">
+      <strong id="towerPanelName"></strong>
+      <button class="tower-panel__close" id="towerPanelClose" aria-label="Cerrar">✕</button>
     </div>
+    <div id="towerPanelLevel" class="tower-panel__level"></div>
+    <div id="towerPanelStats" class="tower-panel__stats"></div>
+    <div class="tower-panel__actions">
+      <button class="btn" id="towerPanelUpgradeBtn">Mejorar</button>
+      <button class="btn btn--danger" id="towerPanelSellBtn">Vender</button>
+    </div>
+  </div>
+
+  <div class="hud-bottom">
+    <div class="tower-picker" id="towerPicker"></div>
     <div class="hud-message" id="hudMessage"></div>
     <button class="btn" id="startWaveBtn">Iniciar oleada</button>
   </div>
@@ -62,7 +71,13 @@
     startWaveBtn: document.getElementById("startWaveBtn"),
     endScreen: document.getElementById("endScreen"),
     endTitle: document.getElementById("endTitle"),
-    endStats: document.getElementById("endStats")
+    endStats: document.getElementById("endStats"),
+    towerPanel: document.getElementById("towerPanel"),
+    towerPanelName: document.getElementById("towerPanelName"),
+    towerPanelLevel: document.getElementById("towerPanelLevel"),
+    towerPanelStats: document.getElementById("towerPanelStats"),
+    towerPanelUpgradeBtn: document.getElementById("towerPanelUpgradeBtn"),
+    towerPanelSellBtn: document.getElementById("towerPanelSellBtn")
   };
 
   const game = new Game(canvas, hud);
@@ -70,8 +85,25 @@
 
   document.getElementById("startWaveBtn").addEventListener("click", () => game.startWave());
   document.getElementById("retryBtn").addEventListener("click", () => game.restart());
-  document.getElementById("towerArcher").addEventListener("click", () => {
-    game.selectedTowerType = "archer";
+  document.getElementById("towerPanelUpgradeBtn").addEventListener("click", () => game.upgradeSelectedTower());
+  document.getElementById("towerPanelSellBtn").addEventListener("click", () => game.sellSelectedTower());
+  document.getElementById("towerPanelClose").addEventListener("click", () => game._deselectTower());
+
+  // Botones de torre generados dinámicamente desde TOWER_TYPES (config.js):
+  // agregar una torre nueva en config.js la suma acá sin tocar este archivo.
+  const towerPicker = document.getElementById("towerPicker");
+  const towerButtons = [];
+  Object.values(TOWER_TYPES).forEach((def, index) => {
+    const btn = document.createElement("button");
+    btn.className = "tower-btn" + (index === 0 ? " is-active" : "");
+    btn.title = def.name;
+    btn.innerHTML = `${def.icon}<span class="cost">${def.levels[0].cost}</span>`;
+    btn.addEventListener("click", () => {
+      game.selectedTowerType = def.id;
+      towerButtons.forEach((b) => b.classList.toggle("is-active", b === btn));
+    });
+    towerPicker.appendChild(btn);
+    towerButtons.push(btn);
   });
 </script>
 

@@ -47,21 +47,65 @@ const ECONOMY_CONFIG = {
 };
 
 // ---- Torres ----
-// damage: daño por disparo. fireRate: disparos por segundo.
-// range: radio de alcance en px. cost: oro para construir.
+// Cada torre define su "levels": un array de estadísticas por nivel.
+// levels[0] es el nivel inicial (levels[0].cost = costo de construcción).
+// levels[n].cost = costo de mejorar del nivel n al n+1.
+// sellRefund: fracción del oro invertido que se recupera al vender.
+// Campos opcionales de comportamiento especial (data-driven, sin lógica hardcodeada):
+//   slowFactor/slowDuration -> el impacto ralentiza al objetivo.
+//   splashRadius/maxTargets -> el impacto también daña enemigos cercanos (hasta maxTargets).
 const TOWER_TYPES = {
   archer: {
     id: "archer",
     name: "Torre de Arqueros",
+    icon: "🏹",
     description: "Ataque rápido, daño medio, alcance medio.",
-    cost: 50,
-    damage: 8,
-    range: 130,
-    fireRate: 1.2,
-    projectileSpeed: 420,
     color: "#6b4a2f",
     accentColor: "#caa25a",
-    projectileColor: "#f2e2a8"
+    projectileColor: "#f2e2a8",
+    projectileSpeed: 420,
+    sellRefund: 0.6,
+    levels: [
+      { cost: 50, damage: 8, range: 130, fireRate: 1.2 },
+      { cost: 55, damage: 14, range: 140, fireRate: 1.3 },
+      { cost: 85, damage: 22, range: 150, fireRate: 1.4 }
+    ]
+  },
+  warrior: {
+    id: "warrior",
+    name: "Torre de Guerreros",
+    icon: "⚔️",
+    description: "Ataque lento, daño alto, ralentiza enemigos.",
+    color: "#5a5850",
+    accentColor: "#9a2f2f",
+    projectileColor: "#e2dede",
+    projectileSpeed: 520,
+    slowFactor: 0.5,
+    slowDuration: 1.5,
+    sellRefund: 0.6,
+    levels: [
+      { cost: 70, damage: 22, range: 95, fireRate: 0.6 },
+      { cost: 80, damage: 34, range: 100, fireRate: 0.65 },
+      { cost: 120, damage: 50, range: 110, fireRate: 0.7 }
+    ]
+  },
+  mage: {
+    id: "mage",
+    name: "Torre de Magos",
+    icon: "🔮",
+    description: "Daño mágico en área, golpea varios enemigos a la vez.",
+    color: "#3a2f5a",
+    accentColor: "#8a5fd6",
+    projectileColor: "#c9a8ff",
+    projectileSpeed: 380,
+    splashRadius: 55,
+    maxTargets: 3,
+    sellRefund: 0.55,
+    levels: [
+      { cost: 90, damage: 10, range: 120, fireRate: 0.8 },
+      { cost: 110, damage: 16, range: 130, fireRate: 0.85 },
+      { cost: 160, damage: 24, range: 140, fireRate: 0.9 }
+    ]
   }
 };
 
@@ -79,6 +123,18 @@ const ENEMY_TYPES = {
     bodyColor: "#4c7a3a",
     darkColor: "#345226",
     damageToCastle: 5
+  },
+  orco: {
+    id: "orco",
+    name: "Orco",
+    hp: 48,
+    speed: 46,
+    reward: 9,
+    xp: 4,
+    radius: 13,
+    bodyColor: "#7a6a3a",
+    darkColor: "#4f4526",
+    damageToCastle: 8
   }
 };
 
@@ -90,6 +146,13 @@ const WAVE_CONFIG = [
     label: "Oleada 1",
     groups: [
       { type: "goblin", count: 10, interval: 0.9, delay: 0 }
+    ]
+  },
+  {
+    label: "Oleada 2",
+    groups: [
+      { type: "goblin", count: 12, interval: 0.7, delay: 0 },
+      { type: "orco", count: 6, interval: 1.3, delay: 3 }
     ]
   }
 ];

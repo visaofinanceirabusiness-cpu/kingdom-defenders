@@ -14,6 +14,7 @@
 }
 
 *,*::before,*::after{box-sizing:border-box}
+.hidden{display:none!important}
 body{
   margin:0;
   background:#1b1712;
@@ -81,6 +82,25 @@ body{
 }
 .btn:hover:not(:disabled){filter:brightness(1.08); transform:translateY(-1px)}
 .btn:disabled{opacity:.45; cursor:not-allowed}
+.btn--danger{background:linear-gradient(180deg, #c65a5a 0%, #8a2f2f 100%); border-color:#5a1c1c; color:#fff2ee}
+.btn--sm{padding:7px 12px; font-size:12px}
+
+/* Panel de torre seleccionada */
+.tower-panel{
+  position:absolute; top:64px; right:16px; z-index:20;
+  width:210px; background:rgba(20,16,10,.94); border:2px solid var(--wood-dark);
+  border-radius:10px; padding:12px 14px; box-shadow:0 10px 24px -8px rgba(0,0,0,.7);
+}
+.tower-panel__head{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px}
+.tower-panel__head strong{font-size:14px}
+.tower-panel__close{
+  background:none; border:none; color:var(--parchment); font-size:14px; cursor:pointer; opacity:.7;
+}
+.tower-panel__close:hover{opacity:1}
+.tower-panel__level{font-size:12px; color:var(--gold); margin-bottom:8px}
+.tower-panel__stats p{margin:2px 0; font-size:12px; color:var(--parchment)}
+.tower-panel__actions{display:flex; flex-direction:column; gap:6px; margin-top:10px}
+.tower-panel__actions .btn{padding:8px 12px; font-size:12px; width:100%}
 
 .tower-picker{display:flex; gap:8px}
 .tower-btn{
