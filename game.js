@@ -24,6 +24,11 @@ class Game {
     this.spotTowers = new Map(); // "x,y" -> Tower construida en ese punto
     this.selectedTower = null; // torre construida seleccionada (panel mejorar/vender)
 
+    this._loadPlayerProgress(); // nivel/XP del jugador (persiste entre partidas)
+    this.abilityCooldowns = {}; // id de habilidad -> segundos restantes
+    Object.keys(ABILITY_TYPES).forEach((id) => (this.abilityCooldowns[id] = 0));
+    this.armedAbility = null; // id de habilidad "targeted" esperando un clic en el mapa
+
     this.state = "waiting"; // waiting | countdown | wave | victory | defeat
     this.currentWaveIndex = 0;
     this.countdown = 0;
@@ -57,6 +62,11 @@ class Game {
   }
 
   _handleClick(x, y) {
+    if (this.armedAbility) {
+      this._activateAbility(this.armedAbility, { x, y });
+      return;
+    }
+
     const existingTower = this._towerAt(x, y);
     if (existingTower) {
       this._selectTower(existingTower);
@@ -73,6 +83,12 @@ class Game {
     if (this.spotTowers.has(key)) return; // ya construida (se selecciona por _towerAt)
 
     const def = TOWER_TYPES[this.selectedTowerType];
+    const requiredLevel = def.unlockLevel || 1;
+    if (this.playerLevel < requiredLevel) {
+      this._setMessage(`${def.name} se desbloquea en el nivel ${requiredLevel}.`);
+      return;
+    }
+
     const cost = def.levels[0].cost;
     if (this.gold < cost) {
       this._setMessage(`Oro insuficiente para ${def.name} (cuesta ${cost}).`);
@@ -132,6 +148,140 @@ class Game {
       if (t === tower) this.spotTowers.delete(key);
     }
     this._deselectTower();
+    this._updateHUD();
+  }
+
+  // -----------------------------------------------------------------------
+  // Progresión del jugador (nivel/XP, persiste en localStorage)
+  // -----------------------------------------------------------------------
+  _loadPlayerProgress() {
+    try {
+      const raw = localStorage.getItem(SAVE_CONFIG.playerProgressKey);
+      if (raw) {
+        const data = JSON.parse(raw);
+        this.playerLevel = data.level || 1;
+        this.playerXp = data.xp || 0;
+        return;
+      }
+    } catch (e) {
+      // localStorage no disponible o dato corrupto: arrancar de cero.
+    }
+    this.playerLevel = 1;
+    this.playerXp = 0;
+  }
+
+  _savePlayerProgress() {
+    try {
+      localStorage.setItem(
+        SAVE_CONFIG.playerProgressKey,
+        JSON.stringify({ level: this.playerLevel, xp: this.playerXp })
+      );
+    } catch (e) {
+      // Sin persistencia disponible: la partida sigue igual, solo no se guarda.
+    }
+  }
+
+  _xpToNextLevel() {
+    if (this.playerLevel >= PLAYER_CONFIG.maxLevel) return Infinity;
+    return Math.round(PLAYER_CONFIG.baseXp * Math.pow(PLAYER_CONFIG.xpGrowth, this.playerLevel - 1));
+  }
+
+  _addPlayerXp(amount) {
+    if (this.playerLevel >= PLAYER_CONFIG.maxLevel) return;
+    this.playerXp += amount;
+    let leveledUp = false;
+    while (this.playerLevel < PLAYER_CONFIG.maxLevel && this.playerXp >= this._xpToNextLevel()) {
+      this.playerXp -= this._xpToNextLevel();
+      this.playerLevel++;
+      leveledUp = true;
+    }
+    this._savePlayerProgress();
+    if (leveledUp) this._setMessage(`¡Subiste a nivel ${this.playerLevel}!`);
+  }
+
+  // -----------------------------------------------------------------------
+  // Habilidades especiales
+  // -----------------------------------------------------------------------
+  useAbility(id) {
+    const def = ABILITY_TYPES[id];
+    if (!def) return;
+
+    if (this.playerLevel < def.unlockLevel) {
+      this._setMessage(`${def.name} se desbloquea en el nivel ${def.unlockLevel}.`);
+      return;
+    }
+    if (this.abilityCooldowns[id] > 0) return;
+    if (this.state !== "wave") {
+      this._setMessage("Las habilidades solo se pueden usar durante una oleada.");
+      return;
+    }
+
+    if (def.targeted) {
+      if (this.armedAbility === id) {
+        this.armedAbility = null;
+        this._setMessage("Habilidad cancelada.");
+      } else {
+        this.armedAbility = id;
+        this._setMessage(`Hacé clic en el mapa para usar ${def.name}.`);
+      }
+      this._updateHUD();
+      return;
+    }
+
+    this._activateAbility(id, null);
+  }
+
+  _activateAbility(id, point) {
+    const def = ABILITY_TYPES[id];
+    if (!def || this.playerLevel < def.unlockLevel || this.abilityCooldowns[id] > 0) {
+      this.armedAbility = null;
+      return;
+    }
+
+    if (id === "freeze") {
+      for (const e of this.enemies) {
+        if (e.alive) e.applySlow(0, def.duration);
+      }
+    } else if (id === "fireRain" && point) {
+      for (const e of this.enemies) {
+        if (e.alive && Math.hypot(e.x - point.x, e.y - point.y) <= def.radius) {
+          e.takeDamage(def.damage);
+        }
+      }
+    } else if (id === "lightning" && point) {
+      let target = null;
+      let bestDist = Infinity;
+      for (const e of this.enemies) {
+        if (!e.alive) continue;
+        const dist = Math.hypot(e.x - point.x, e.y - point.y);
+        if (dist < bestDist) {
+          bestDist = dist;
+          target = e;
+        }
+      }
+      if (!target) {
+        this._setMessage("No hay enemigos cerca de ese punto.");
+        this.armedAbility = null;
+        this._updateHUD();
+        return;
+      }
+      const hit = new Set([target]);
+      target.takeDamage(def.damage);
+      let hits = 1;
+      for (const e of this.enemies) {
+        if (hits >= def.maxTargets) break;
+        if (hit.has(e) || !e.alive) continue;
+        if (Math.hypot(e.x - target.x, e.y - target.y) <= def.chainRadius) {
+          e.takeDamage(def.damage);
+          hit.add(e);
+          hits++;
+        }
+      }
+    }
+
+    this.abilityCooldowns[id] = def.cooldown;
+    this.armedAbility = null;
+    this._setMessage(`${def.name} usada.`);
     this._updateHUD();
   }
 
@@ -205,6 +355,10 @@ class Game {
   }
 
   _update(dt) {
+    for (const id in this.abilityCooldowns) {
+      if (this.abilityCooldowns[id] > 0) this.abilityCooldowns[id] = Math.max(0, this.abilityCooldowns[id] - dt);
+    }
+
     if (this.state === "countdown") {
       this.countdown -= dt;
       this._updateHUD();
@@ -212,7 +366,10 @@ class Game {
       return;
     }
 
-    if (this.state !== "wave") return;
+    if (this.state !== "wave") {
+      this._updateHUD();
+      return;
+    }
 
     this._updateSpawning(dt);
 
@@ -237,6 +394,7 @@ class Game {
         this.goldEarned += enemy.def.reward;
         this.xpEarned += enemy.def.xp;
         this.enemiesDefeated++;
+        this._addPlayerXp(enemy.def.xp);
       }
     }
 
@@ -302,6 +460,32 @@ class Game {
     if (h.countdown) {
       h.countdown.textContent = this.state === "countdown" ? Math.ceil(this.countdown) : "";
     }
+    if (h.playerLevel) h.playerLevel.textContent = `Nivel ${this.playerLevel}`;
+    if (h.xpBar) {
+      const pct =
+        this.playerLevel >= PLAYER_CONFIG.maxLevel ? 100 : Math.min(100, (this.playerXp / this._xpToNextLevel()) * 100);
+      h.xpBar.style.width = `${pct}%`;
+    }
+    if (h.towerButtons) {
+      h.towerButtons.forEach((btn, i) => {
+        const def = Object.values(TOWER_TYPES)[i];
+        const locked = this.playerLevel < (def.unlockLevel || 1);
+        btn.classList.toggle("is-locked", locked);
+      });
+    }
+    if (h.abilityButtons) {
+      Object.entries(h.abilityButtons).forEach(([id, refs]) => {
+        const def = ABILITY_TYPES[id];
+        const locked = this.playerLevel < def.unlockLevel;
+        const cd = this.abilityCooldowns[id] || 0;
+        refs.button.classList.toggle("is-locked", locked);
+        refs.button.classList.toggle("is-active", this.armedAbility === id);
+        refs.button.disabled = locked || cd > 0 || this.state !== "wave";
+        refs.cooldownEl.textContent = locked ? `Nv.${def.unlockLevel}` : cd > 0 ? Math.ceil(cd) : "";
+        refs.cooldownEl.classList.toggle("hidden", !(locked || cd > 0));
+      });
+    }
+    if (this.canvas) this.canvas.classList.toggle("is-targeting", !!this.armedAbility);
     if (this.selectedTower) this._updateTowerPanel();
   }
 
@@ -347,6 +531,7 @@ class Game {
       <p>Enemigos derrotados: ${this.enemiesDefeated}</p>
       <p>Oro conseguido: ${this.goldEarned}</p>
       <p>XP conseguida: ${this.xpEarned}</p>
+      <p>Nivel de jugador: ${this.playerLevel}</p>
     `;
   }
 
@@ -358,6 +543,8 @@ class Game {
     this.projectiles = [];
     this.spotTowers.clear();
     this._deselectTower();
+    Object.keys(this.abilityCooldowns).forEach((id) => (this.abilityCooldowns[id] = 0));
+    this.armedAbility = null;
     this.state = "waiting";
     this.currentWaveIndex = 0;
     this.enemiesDefeated = 0;

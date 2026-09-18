@@ -46,6 +46,20 @@ const ECONOMY_CONFIG = {
   startingGold: 150
 };
 
+// ---- Progresión del jugador ----
+// El nivel/XP del jugador persiste entre partidas (localStorage), a diferencia
+// del oro/torres de una partida en curso, que se reinician con restart().
+// xpToNextLevel(nivel) = round(baseXp * xpGrowth^(nivel-1)).
+const PLAYER_CONFIG = {
+  baseXp: 15,
+  xpGrowth: 1.4,
+  maxLevel: 5
+};
+
+const SAVE_CONFIG = {
+  playerProgressKey: "kingdomDefenders.playerProgress"
+};
+
 // ---- Torres ----
 // Cada torre define su "levels": un array de estadísticas por nivel.
 // levels[0] es el nivel inicial (levels[0].cost = costo de construcción).
@@ -101,6 +115,7 @@ const TOWER_TYPES = {
     splashRadius: 55,
     maxTargets: 3,
     sellRefund: 0.55,
+    unlockLevel: 2,
     levels: [
       { cost: 90, damage: 10, range: 120, fireRate: 0.8 },
       { cost: 110, damage: 16, range: 130, fireRate: 0.85 },
@@ -161,4 +176,45 @@ const WAVE_CONFIG = [
 const GAME_CONFIG = {
   countdownBeforeWave: 3, // segundos de cuenta regresiva antes de iniciar
   targetFPS: 60
+};
+
+// ---- Habilidades especiales ----
+// unlockLevel: nivel de jugador necesario para poder usarla.
+// cooldown: segundos de espera entre usos.
+// targeted: true -> el jugador debe hacer clic en el mapa para aplicarla ahí.
+//           false -> se activa de inmediato sobre todos los enemigos visibles.
+const ABILITY_TYPES = {
+  freeze: {
+    id: "freeze",
+    name: "Congelar",
+    icon: "❄️",
+    description: "Congela a todos los enemigos en pantalla por un tiempo.",
+    unlockLevel: 1,
+    cooldown: 20,
+    targeted: false,
+    duration: 2.5
+  },
+  fireRain: {
+    id: "fireRain",
+    name: "Lluvia de Fuego",
+    icon: "🔥",
+    description: "Daño en área en el punto donde hagas clic.",
+    unlockLevel: 2,
+    cooldown: 18,
+    targeted: true,
+    damage: 35,
+    radius: 70
+  },
+  lightning: {
+    id: "lightning",
+    name: "Rayo en Cadena",
+    icon: "⚡",
+    description: "Golpea al enemigo más cercano al clic y salta a otros cercanos.",
+    unlockLevel: 3,
+    cooldown: 15,
+    targeted: true,
+    damage: 28,
+    maxTargets: 4,
+    chainRadius: 90
+  }
 };

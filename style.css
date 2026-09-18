@@ -15,26 +15,28 @@
 
 *,*::before,*::after{box-sizing:border-box}
 .hidden{display:none!important}
+html,body{height:100%}
 body{
   margin:0;
-  background:#1b1712;
+  background:#000;
   color:var(--parchment);
   font-family:'Cinzel','Georgia',serif;
   display:flex;
   align-items:center;
   justify-content:center;
-  min-height:100vh;
-  padding:16px;
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
 }
 
 .game-wrap{
   position:relative;
-  width:100%;
-  max-width:960px;
-  border:6px solid var(--wood-dark);
-  border-radius:10px;
+  width:100vw;
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   overflow:hidden;
-  box-shadow:0 20px 60px -20px rgba(0,0,0,.8);
   background:#000;
 }
 
@@ -56,6 +58,13 @@ body{
   border:1px solid var(--stone-dark); border-radius:4px; overflow:hidden;
 }
 .castle-hpbar__fill{height:100%; background:linear-gradient(90deg, var(--blood), #d9536a); transition:width .2s ease}
+
+.player-block{display:flex; align-items:center; gap:8px}
+.xp-bar{
+  width:90px; height:8px; background:rgba(0,0,0,.5);
+  border:1px solid var(--stone-dark); border-radius:4px; overflow:hidden;
+}
+.xp-bar__fill{height:100%; background:linear-gradient(90deg, #4f9bd6, #274f6b); transition:width .2s ease}
 
 /* HUD inferior */
 .hud-bottom{
@@ -110,9 +119,25 @@ body{
   position:relative;
 }
 .tower-btn.is-active{border-color:var(--gold); box-shadow:0 0 0 2px rgba(224,178,58,.5)}
+.tower-btn.is-locked{opacity:.4; cursor:not-allowed}
 .tower-btn .cost{
   position:absolute; bottom:-8px; right:-6px; background:#1b1712; color:var(--gold);
   font-size:10px; padding:1px 5px; border-radius:6px; border:1px solid var(--gold-dark);
+}
+
+.abilities-bar{display:flex; gap:8px}
+.ability-btn{
+  width:52px; height:52px; border-radius:8px; border:2px solid var(--wood-dark);
+  background:#2c2418; color:var(--parchment); font-size:22px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  position:relative;
+}
+.ability-btn.is-active{border-color:#4f9bd6; box-shadow:0 0 0 2px rgba(79,155,214,.5)}
+.ability-btn.is-locked{opacity:.4; cursor:not-allowed}
+.ability-btn:disabled{opacity:.5; cursor:not-allowed}
+.ability-cd{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.6); font-size:11px; font-weight:700; border-radius:6px;
 }
 
 /* Countdown */
@@ -123,7 +148,14 @@ body{
   z-index:15; pointer-events:none;
 }
 
-canvas{display:block; width:100%; height:auto; cursor:crosshair}
+canvas{
+  display:block;
+  width:auto; height:auto;
+  max-width:100vw; max-height:100vh;
+  aspect-ratio:960/540;
+  cursor:crosshair;
+}
+canvas.is-targeting{cursor:cell}
 
 /* Pantalla final */
 .end-screen{
