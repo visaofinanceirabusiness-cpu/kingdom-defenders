@@ -28,3 +28,11 @@ Abrir `index.html` directamente en el navegador, o servir la carpeta con cualqui
 ## Estado
 
 Las 6 fases del plan original están completas: núcleo jugable, economía, progresión del jugador, contenido avanzado (jefe, mapas, torre extra), pulido (efectos/sonido/guardado) y optimización final. El juego es jugable de punta a punta, desde el bosque hasta el Señor de la Guerra en la Oleada 10.
+
+## Vista isométrica
+
+El render pasó de una vista "de arriba" plana a una proyección isométrica, con sombras y degradés (bisel) en torres, enemigos y castillo para dar sensación de volumen. El mapa (camino, spots de construcción, castillo) sigue viviendo en las mismas coordenadas de mundo de siempre — la lógica del juego no cambió, solo cómo se dibuja:
+
+- `ISO_CONFIG` (`config.js`) define la transformación (escala y offset).
+- `isoProject(x, y)` / `isoUnproject(sx, sy)` (`game.js`) convierten entre coordenadas de mundo y de pantalla, en las dos direcciones (dibujar, y traducir un clic de vuelta a mundo).
+- `_render()` ordena torres/enemigos/proyectiles/castillo por profundidad (algoritmo del pintor) antes de dibujar, para que lo de "adelante" tape correctamente a lo de "atrás".

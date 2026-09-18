@@ -161,7 +161,7 @@ canvas{
   display:block;
   width:auto; height:auto;
   max-width:100%; max-height:100%;
-  aspect-ratio:960/540;
+  aspect-ratio:960/640; /* proyección isométrica: el canvas ahora es más alto que el mapa lógico */
   cursor:crosshair;
 }
 canvas.is-targeting{cursor:cell}

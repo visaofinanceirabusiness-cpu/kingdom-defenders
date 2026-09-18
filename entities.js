@@ -70,19 +70,27 @@ class Enemy {
     }
   }
 
-  draw(ctx) {
+  draw(ctx, isoProject) {
     const d = this.def;
+    const p = isoProject(this.x, this.y);
+    const x = p.sx;
+    const y = p.sy;
+    const r = this.radius;
 
-    // sombra
+    // sombra en el suelo (achatada, como corresponde a una vista isométrica)
     ctx.beginPath();
-    ctx.ellipse(this.x, this.y + this.radius * 0.7, this.radius * 0.9, this.radius * 0.35, 0, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.ellipse(x, y + r * 0.4, r * 0.95, r * 0.4, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
     ctx.fill();
 
-    // cuerpo
+    // cuerpo con degradé radial (bisel esférico, en vez de color plano)
+    const bodyGrad = ctx.createRadialGradient(x - r * 0.35, y - r * 0.9, r * 0.2, x, y - r * 0.5, r * 1.3);
+    bodyGrad.addColorStop(0, this._lighten(d.bodyColor, 0.35));
+    bodyGrad.addColorStop(0.6, d.bodyColor);
+    bodyGrad.addColorStop(1, d.darkColor);
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.fillStyle = d.bodyColor;
+    ctx.arc(x, y - r * 0.5, r, 0, Math.PI * 2);
+    ctx.fillStyle = bodyGrad;
     ctx.fill();
     ctx.lineWidth = 2;
     ctx.strokeStyle = d.darkColor;
@@ -91,7 +99,7 @@ class Enemy {
     // anillo dorado distintivo para jefes
     if (d.isBoss) {
       ctx.beginPath();
-      ctx.arc(this.x, this.y, this.radius + 5, 0, Math.PI * 2);
+      ctx.arc(x, y - r * 0.5, r + 5, 0, Math.PI * 2);
       ctx.strokeStyle = "#e0b23a";
       ctx.lineWidth = 3;
       ctx.stroke();
@@ -100,7 +108,7 @@ class Enemy {
     // tinte azulado si está ralentizado
     if (this.slowTimer > 0) {
       ctx.beginPath();
-      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      ctx.arc(x, y - r * 0.5, r, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(120,180,255,0.35)";
       ctx.fill();
     }
@@ -108,20 +116,31 @@ class Enemy {
     // ojos (le da vida sin necesitar sprites)
     ctx.fillStyle = "#fff2c2";
     ctx.beginPath();
-    ctx.arc(this.x - this.radius * 0.35, this.y - this.radius * 0.15, this.radius * 0.18, 0, Math.PI * 2);
-    ctx.arc(this.x + this.radius * 0.35, this.y - this.radius * 0.15, this.radius * 0.18, 0, Math.PI * 2);
+    ctx.arc(x - r * 0.35, y - r * 0.65, r * 0.18, 0, Math.PI * 2);
+    ctx.arc(x + r * 0.35, y - r * 0.65, r * 0.18, 0, Math.PI * 2);
     ctx.fill();
 
     // barra de vida
-    const barW = this.radius * 2.2;
+    const barW = r * 2.2;
     const barH = 4;
-    const barX = this.x - barW / 2;
-    const barY = this.y - this.radius - 10;
+    const barX = x - barW / 2;
+    const barY = y - r * 1.5 - 10;
     ctx.fillStyle = "rgba(0,0,0,0.5)";
     ctx.fillRect(barX, barY, barW, barH);
     const hpRatio = Math.max(0, this.hp / this.maxHp);
     ctx.fillStyle = hpRatio > 0.5 ? "#6fbf4f" : hpRatio > 0.25 ? "#e0b23a" : "#c0432f";
     ctx.fillRect(barX, barY, barW * hpRatio, barH);
+  }
+
+  // Aclara un color hex "#rrggbb" hacia blanco en la proporción dada (0-1),
+  // para armar degradés de bisel sin necesitar una paleta de colores extra.
+  _lighten(hex, amount) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16) & 255;
+    const g = (n >> 8) & 255;
+    const b = n & 255;
+    const mix = (c) => Math.round(c + (255 - c) * amount);
+    return `rgb(${mix(r)},${mix(g)},${mix(b)})`;
   }
 }
 
@@ -155,11 +174,12 @@ class Particle {
     this.vy *= 0.93;
   }
 
-  draw(ctx) {
+  draw(ctx, isoProject) {
+    const p = isoProject(this.x, this.y);
     const t = Math.max(0, this.life / this.maxLife);
     ctx.globalAlpha = t;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius * t, 0, Math.PI * 2);
+    ctx.arc(p.sx, p.sy, this.radius * t, 0, Math.PI * 2);
     ctx.fillStyle = this.color;
     ctx.fill();
     ctx.globalAlpha = 1;
@@ -186,13 +206,14 @@ class FloatingText {
     this.y -= 26 * dt;
   }
 
-  draw(ctx) {
+  draw(ctx, isoProject) {
+    const p = isoProject(this.x, this.y);
     const t = Math.max(0, this.life / this.maxLife);
     ctx.globalAlpha = t;
     ctx.fillStyle = this.color;
     ctx.font = "bold 13px 'Cinzel', Georgia, serif";
     ctx.textAlign = "center";
-    ctx.fillText(this.text, this.x, this.y);
+    ctx.fillText(this.text, p.sx, p.sy);
     ctx.globalAlpha = 1;
     ctx.textAlign = "start";
   }
@@ -212,15 +233,16 @@ class LightningEffect {
     if (this.life <= 0) this.alive = false;
   }
 
-  draw(ctx) {
+  draw(ctx, isoProject) {
     if (this.points.length < 2) return;
+    const pts = this.points.map((pt) => isoProject(pt.x, pt.y));
     const t = Math.max(0, this.life / this.maxLife);
     ctx.globalAlpha = t;
     ctx.strokeStyle = this.color;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(this.points[0].x, this.points[0].y);
-    for (let i = 1; i < this.points.length; i++) ctx.lineTo(this.points[i].x, this.points[i].y);
+    ctx.moveTo(pts[0].sx, pts[0].sy);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].sx, pts[i].sy);
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
@@ -290,10 +312,11 @@ class Projectile {
     }
   }
 
-  draw(ctx) {
+  draw(ctx, isoProject) {
     if (!this.alive) return;
+    const p = isoProject(this.x, this.y);
     ctx.beginPath();
-    ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+    ctx.arc(p.sx, p.sy, 4, 0, Math.PI * 2);
     ctx.fillStyle = this.color;
     ctx.fill();
     ctx.strokeStyle = "rgba(0,0,0,0.4)";
@@ -408,10 +431,24 @@ class Tower {
     }
   }
 
-  draw(ctx, showRange) {
+  draw(ctx, isoProject, showRange) {
+    const p = isoProject(this.x, this.y);
+    const x = p.sx;
+    const y = p.sy;
+
     if (showRange) {
       ctx.beginPath();
-      ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
+      // La proyección isométrica de un círculo de radio "range" es una elipse
+      // con semiejes range*scale*√2 (se puede derivar de sx=(x-y)*A, sy=(x+y)*B).
+      ctx.ellipse(
+        x,
+        y,
+        this.range * ISO_CONFIG.scaleX * Math.SQRT2,
+        this.range * ISO_CONFIG.scaleY * Math.SQRT2,
+        0,
+        0,
+        Math.PI * 2
+      );
       ctx.fillStyle = "rgba(255,255,255,0.06)";
       ctx.fill();
       ctx.strokeStyle = "rgba(255,255,255,0.35)";
@@ -419,42 +456,51 @@ class Tower {
       ctx.stroke();
     }
 
-    // base
+    // sombra en el suelo
     ctx.beginPath();
-    ctx.arc(this.x, this.y + 4, 20, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.ellipse(x, y + 4, 20, 9, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
     ctx.fill();
 
-    ctx.fillStyle = this.def.color;
-    ctx.fillRect(this.x - 16, this.y - 22, 32, 34);
+    // cuerpo con degradé horizontal (cara iluminada / cara en sombra)
+    const bodyGrad = ctx.createLinearGradient(x - 16, 0, x + 16, 0);
+    bodyGrad.addColorStop(0, "#1c130a");
+    bodyGrad.addColorStop(0.35, this.def.color);
+    bodyGrad.addColorStop(1, "#000000aa");
+    ctx.fillStyle = bodyGrad;
+    ctx.fillRect(x - 16, y - 22, 32, 34);
     ctx.strokeStyle = "#2c1c10";
     ctx.lineWidth = 2;
-    ctx.strokeRect(this.x - 16, this.y - 22, 32, 34);
+    ctx.strokeRect(x - 16, y - 22, 32, 34);
 
-    // techo/torreta
+    // techo/torreta con degradé
+    const roofGrad = ctx.createLinearGradient(x - 20, y - 40, x + 20, y - 22);
+    roofGrad.addColorStop(0, this.def.accentColor);
+    roofGrad.addColorStop(1, "#00000066");
     ctx.beginPath();
-    ctx.moveTo(this.x - 20, this.y - 22);
-    ctx.lineTo(this.x, this.y - 40);
-    ctx.lineTo(this.x + 20, this.y - 22);
+    ctx.moveTo(x - 20, y - 22);
+    ctx.lineTo(x, y - 40);
+    ctx.lineTo(x + 20, y - 22);
     ctx.closePath();
-    ctx.fillStyle = this.def.accentColor;
+    ctx.fillStyle = roofGrad;
     ctx.fill();
     ctx.stroke();
 
     // dirección hacia el objetivo (arma apuntando)
     if (this.target && this.target.alive) {
-      const angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+      const t = isoProject(this.target.x, this.target.y);
+      const angle = Math.atan2(t.sy - y, t.sx - x);
       ctx.strokeStyle = this.def.projectileColor;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(this.x, this.y - 6);
-      ctx.lineTo(this.x + Math.cos(angle) * 22, this.y - 6 + Math.sin(angle) * 22);
+      ctx.moveTo(x, y - 6);
+      ctx.lineTo(x + Math.cos(angle) * 22, y - 6 + Math.sin(angle) * 22);
       ctx.stroke();
     }
 
     // pips de nivel
-    const pipsY = this.y - 46;
-    const pipsStartX = this.x - ((this.maxLevel - 1) * 7) / 2;
+    const pipsY = y - 46;
+    const pipsStartX = x - ((this.maxLevel - 1) * 7) / 2;
     for (let i = 0; i < this.maxLevel; i++) {
       ctx.beginPath();
       ctx.arc(pipsStartX + i * 7, pipsY, 2.5, 0, Math.PI * 2);

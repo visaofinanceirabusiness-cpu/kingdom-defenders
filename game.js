@@ -65,6 +65,26 @@ class SoundManager {
 // en cada frame dentro de _updateHUD, que corre a 60fps).
 const TOWER_LIST = Object.values(TOWER_TYPES);
 
+// ---------------------------------------------------------------------------
+// Proyección isométrica: transforma coordenadas de mundo (x,y del mapa,
+// 0-960/0-540) a coordenadas de pantalla (sx,sy) para dibujar, y a la inversa
+// para traducir un clic en pantalla de vuelta a coordenadas de mundo antes de
+// hacer hit-testing. Toda la lógica del juego (movimiento, rango, colisión)
+// sigue trabajando en coordenadas de mundo; esto es puramente presentación.
+// ---------------------------------------------------------------------------
+function isoProject(x, y) {
+  return {
+    sx: (x - y) * ISO_CONFIG.scaleX + ISO_CONFIG.offsetX,
+    sy: (x + y) * ISO_CONFIG.scaleY + ISO_CONFIG.offsetY
+  };
+}
+
+function isoUnproject(sx, sy) {
+  const u = (sx - ISO_CONFIG.offsetX) / ISO_CONFIG.scaleX;
+  const v = (sy - ISO_CONFIG.offsetY) / ISO_CONFIG.scaleY;
+  return { x: (u + v) / 2, y: (v - u) / 2 };
+}
+
 // Compacta un array in-place, removiendo los elementos con alive=false, sin
 // asignar un array nuevo (menos presión sobre el garbage collector que .filter()
 // corriendo cada frame en el loop principal).
@@ -183,8 +203,9 @@ class Game {
       const rect = this.canvas.getBoundingClientRect();
       const scaleX = this.canvas.width / rect.width;
       const scaleY = this.canvas.height / rect.height;
-      const x = (e.clientX - rect.left) * scaleX;
-      const y = (e.clientY - rect.top) * scaleY;
+      const sx = (e.clientX - rect.left) * scaleX;
+      const sy = (e.clientY - rect.top) * scaleY;
+      const { x, y } = isoUnproject(sx, sy);
       this._handleClick(x, y);
     });
   }
@@ -742,65 +763,87 @@ class Game {
   }
 
   // -----------------------------------------------------------------------
-  // Render
+  // Render (proyección isométrica)
   // -----------------------------------------------------------------------
   _render() {
     const ctx = this.ctx;
-    const { width, height } = this.map;
-    ctx.clearRect(0, 0, width, height);
+    ctx.clearRect(0, 0, ISO_CONFIG.canvasWidth, ISO_CONFIG.canvasHeight);
 
     this._drawTerrain(ctx);
     this._drawPath(ctx);
     this._drawBuildSpots(ctx);
-    this._drawCastle(ctx);
 
-    for (const tower of this.towers) tower.draw(ctx, tower === this.selectedTower);
-    for (const enemy of this.enemies) enemy.draw(ctx);
-    for (const proj of this.projectiles) proj.draw(ctx);
-    for (const e of this.effects) e.draw(ctx);
+    // Orden por profundidad (pintor): todo lo que está "más atrás" en el
+    // mundo (x+y menor) se dibuja primero, para que lo de adelante lo tape
+    // correctamente. El castillo entra en el mismo orden que torres/enemigos.
+    const drawables = [{ depth: this.map.castle.x + this.map.castle.y, draw: () => this._drawCastle(ctx) }];
+    for (const tower of this.towers) {
+      drawables.push({ depth: tower.x + tower.y, draw: () => tower.draw(ctx, isoProject, tower === this.selectedTower) });
+    }
+    for (const enemy of this.enemies) {
+      drawables.push({ depth: enemy.x + enemy.y, draw: () => enemy.draw(ctx, isoProject) });
+    }
+    for (const proj of this.projectiles) {
+      drawables.push({ depth: proj.x + proj.y, draw: () => proj.draw(ctx, isoProject) });
+    }
+    drawables.sort((a, b) => a.depth - b.depth);
+    for (const d of drawables) d.draw();
+
+    for (const e of this.effects) e.draw(ctx, isoProject);
 
     if (this.castleFlashTimer > 0) {
       ctx.fillStyle = `rgba(163,40,60,${(this.castleFlashTimer / GAME_CONFIG.castleFlashDuration) * 0.35})`;
-      ctx.fillRect(0, 0, width, height);
+      ctx.fillRect(0, 0, ISO_CONFIG.canvasWidth, ISO_CONFIG.canvasHeight);
     }
   }
 
   _drawTerrain(ctx) {
     const { width, height, terrainColors } = this.map;
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    const corners = [isoProject(0, 0), isoProject(width, 0), isoProject(width, height), isoProject(0, height)];
+
+    const grad = ctx.createLinearGradient(0, corners[0].sy, 0, corners[2].sy);
     grad.addColorStop(0, terrainColors.top);
     grad.addColorStop(1, terrainColors.bottom);
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, width, height);
+    ctx.beginPath();
+    ctx.moveTo(corners[0].sx, corners[0].sy);
+    for (let i = 1; i < corners.length; i++) ctx.lineTo(corners[i].sx, corners[i].sy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.3)";
+    ctx.lineWidth = 3;
+    ctx.stroke();
 
-    // "textura" de bosque: manchas verdes suaves distribuidas de forma determinística
+    // "textura" del terreno: manchas proyectadas, distribuidas de forma determinística
     ctx.fillStyle = "rgba(0,0,0,0.08)";
     for (let i = 0; i < 40; i++) {
-      const x = (i * 137) % width;
-      const y = (i * 79) % height;
+      const wx = (i * 137) % width;
+      const wy = (i * 79) % height;
+      const p = isoProject(wx, wy);
       ctx.beginPath();
-      ctx.arc(x, y, 18, 0, Math.PI * 2);
+      ctx.ellipse(p.sx, p.sy, 16, 8, 0, 0, Math.PI * 2);
       ctx.fill();
     }
   }
 
   _drawPath(ctx) {
     const { path, pathWidth } = this.map;
+    const pts = path.map((p) => isoProject(p.x, p.y));
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
 
-    ctx.strokeStyle = "#8a6a42";
-    ctx.lineWidth = pathWidth;
+    ctx.strokeStyle = "#6b5334";
+    ctx.lineWidth = pathWidth * ISO_CONFIG.scaleY * 2;
     ctx.beginPath();
-    ctx.moveTo(path[0].x, path[0].y);
-    for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
+    ctx.moveTo(pts[0].sx, pts[0].sy);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].sx, pts[i].sy);
     ctx.stroke();
 
     ctx.strokeStyle = "#a9835a";
-    ctx.lineWidth = pathWidth - 10;
+    ctx.lineWidth = (pathWidth - 10) * ISO_CONFIG.scaleY * 2;
     ctx.beginPath();
-    ctx.moveTo(path[0].x, path[0].y);
-    for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
+    ctx.moveTo(pts[0].sx, pts[0].sy);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].sx, pts[i].sy);
     ctx.stroke();
   }
 
@@ -808,8 +851,9 @@ class Game {
     for (const spot of this.map.buildSpots) {
       const key = `${spot.x},${spot.y}`;
       if (this.spotTowers.has(key)) continue;
+      const p = isoProject(spot.x, spot.y);
       ctx.beginPath();
-      ctx.arc(spot.x, spot.y, 22, 0, Math.PI * 2);
+      ctx.ellipse(p.sx, p.sy, 26, 13, 0, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255, 230, 150, 0.18)";
       ctx.fill();
       ctx.setLineDash([5, 4]);
@@ -821,15 +865,29 @@ class Game {
   }
 
   _drawCastle(ctx) {
-    const { x, y } = this.map.castle;
-    ctx.fillStyle = "#6b6963";
+    const p = isoProject(this.map.castle.x, this.map.castle.y);
+    const x = p.sx;
+    const y = p.sy;
+
+    // sombra en el suelo
+    ctx.beginPath();
+    ctx.ellipse(x, y + 6, 46, 18, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.fill();
+
+    // muro con degradé (bisel) para sensación de volumen
+    const wallGrad = ctx.createLinearGradient(x - 34, 0, x + 34, 0);
+    wallGrad.addColorStop(0, "#4d4b45");
+    wallGrad.addColorStop(0.45, "#8a877d");
+    wallGrad.addColorStop(1, "#6b6963");
+    ctx.fillStyle = wallGrad;
     ctx.fillRect(x - 34, y - 50, 68, 100);
     ctx.strokeStyle = "#2b2a27";
     ctx.lineWidth = 3;
     ctx.strokeRect(x - 34, y - 50, 68, 100);
 
     // almenas
-    ctx.fillStyle = "#6b6963";
+    ctx.fillStyle = "#7c7a70";
     for (let i = -1; i <= 1; i++) {
       ctx.fillRect(x - 34 + (i + 1) * 22 - 8, y - 62, 16, 14);
     }
