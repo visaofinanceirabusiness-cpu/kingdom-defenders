@@ -6,12 +6,13 @@
    ========================================================================= */
 
 class Game {
-  constructor(canvas, hud) {
+  constructor(canvas, hud, mapId) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.hud = hud; // referencias a elementos del HUD (ver index.html)
 
-    this.map = MAP_CONFIG;
+    this.mapId = mapId && MAPS[mapId] ? mapId : DEFAULT_MAP_ID;
+    this.map = MAPS[this.mapId];
     this.castleHp = CASTLE_CONFIG.maxHp;
     this.castleMaxHp = CASTLE_CONFIG.maxHp;
     this.gold = ECONOMY_CONFIG.startingGold;
@@ -574,10 +575,10 @@ class Game {
   }
 
   _drawTerrain(ctx) {
-    const { width, height } = this.map;
+    const { width, height, terrainColors } = this.map;
     const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, "#3f5c34");
-    grad.addColorStop(1, "#2f4527");
+    grad.addColorStop(0, terrainColors.top);
+    grad.addColorStop(1, terrainColors.bottom);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, width, height);
 

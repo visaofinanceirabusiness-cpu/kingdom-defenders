@@ -21,6 +21,6 @@ Abrir `index.html` directamente en el navegador, o servir la carpeta con cualqui
 - [x] **Fase 1** — núcleo jugable: mapa, camino, castillo, 1 enemigo (Goblin), 1 torre (Arqueros), sistema de ataque, sistema de oleadas, victoria/derrota.
 - [x] **Fase 2** — economía activa: mejora y venta de torres (con niveles), Torre de Guerreros (ralentiza), Torre de Magos (daño en área), enemigo Orco, Oleada 2 con mezcla de enemigos.
 - [x] **Fase 3** — XP y nivel del jugador (persiste en localStorage), desbloqueo de torres por nivel (Torre de Magos desde nivel 2), 3 habilidades especiales con cooldown: Congelar, Lluvia de Fuego y Rayo en Cadena.
-- [ ] **Fase 4** — jefes, nuevos mapas, progresión avanzada.
+- [x] **Fase 4** — 10 oleadas con jefe final (Señor de la Guerra) en la Oleada 10, 2 enemigos nuevos (Caballero Oscuro, Troll), Torre de Artillería (nivel 4), selector de 2 mapas (Bosque de Ingleses / Desfiladero de Montaña) con botón para cambiar de mapa en cualquier momento, castillo y economía reajustados para la campaña más larga.
 - [ ] **Fase 5** — animaciones, efectos, sonido, pulido visual, responsive táctil, guardado.
 - [ ] **Fase 6** — optimización y preparación para publicación.

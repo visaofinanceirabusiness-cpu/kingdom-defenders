@@ -88,6 +88,15 @@ class Enemy {
     ctx.strokeStyle = d.darkColor;
     ctx.stroke();
 
+    // anillo dorado distintivo para jefes
+    if (d.isBoss) {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius + 5, 0, Math.PI * 2);
+      ctx.strokeStyle = "#e0b23a";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+
     // tinte azulado si está ralentizado
     if (this.slowTimer > 0) {
       ctx.beginPath();

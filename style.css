@@ -155,6 +155,28 @@ canvas{
 }
 canvas.is-targeting{cursor:cell}
 
+/* Selección de mapa */
+.map-select{
+  position:absolute; inset:0; z-index:40;
+  background:rgba(10,8,5,.94);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; gap:16px; padding:20px;
+}
+.map-select h1{font-size:32px; margin:0; color:var(--gold)}
+.map-select__hint{margin:0; opacity:.85; font-size:14px}
+.map-select__grid{display:flex; gap:16px; flex-wrap:wrap; justify-content:center}
+.map-card{
+  font-family:inherit;
+  width:180px; padding:24px 12px;
+  border-radius:12px; border:2px solid var(--wood-dark);
+  background:linear-gradient(180deg, var(--map-color, var(--forest)) 0%, #1b1712 140%);
+  color:#fff; font-weight:700; font-size:15px;
+  cursor:pointer;
+  box-shadow:0 8px 20px -8px rgba(0,0,0,.7);
+  transition:transform .1s ease, filter .1s ease;
+}
+.map-card:hover{filter:brightness(1.12); transform:translateY(-2px)}
+
 /* Pantalla final */
 .end-screen{
   position:absolute; inset:0; z-index:30;

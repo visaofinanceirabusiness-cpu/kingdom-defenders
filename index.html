@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kingdom Defenders — Fase 3</title>
+<title>Kingdom Defenders — Fase 4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&display=swap" rel="stylesheet">
@@ -12,6 +12,12 @@
 <body>
 
 <div class="game-wrap">
+
+  <div class="map-select" id="mapSelect">
+    <h1>Kingdom Defenders</h1>
+    <p class="map-select__hint">Elegí un mapa para defender</p>
+    <div class="map-select__grid" id="mapGrid"></div>
+  </div>
 
   <div class="hud-top">
     <div class="hud-stat castle-block">
@@ -26,6 +32,7 @@
       <span id="hudPlayerLevel">Nivel 1</span>
       <div class="xp-bar"><div class="xp-bar__fill" id="hudXpBar" style="width:0%"></div></div>
     </div>
+    <button class="btn btn--sm" id="changeMapBtn">Cambiar mapa</button>
   </div>
 
   <div class="countdown" id="hudCountdown"></div>
@@ -88,14 +95,36 @@
     xpBar: document.getElementById("hudXpBar")
   };
 
-  const game = new Game(canvas, hud);
-  game.start();
+  let game = null;
 
-  document.getElementById("startWaveBtn").addEventListener("click", () => game.startWave());
-  document.getElementById("retryBtn").addEventListener("click", () => game.restart());
-  document.getElementById("towerPanelUpgradeBtn").addEventListener("click", () => game.upgradeSelectedTower());
-  document.getElementById("towerPanelSellBtn").addEventListener("click", () => game.sellSelectedTower());
-  document.getElementById("towerPanelClose").addEventListener("click", () => game._deselectTower());
+  function beginGame(mapId) {
+    document.getElementById("mapSelect").classList.add("hidden");
+    document.getElementById("endScreen").classList.add("hidden");
+    if (game) game.running = false; // corta el loop anterior antes de reemplazarlo
+    game = new Game(canvas, hud, mapId);
+    game.start();
+  }
+
+  document.getElementById("startWaveBtn").addEventListener("click", () => game && game.startWave());
+  document.getElementById("retryBtn").addEventListener("click", () => game && game.restart());
+  document.getElementById("towerPanelUpgradeBtn").addEventListener("click", () => game && game.upgradeSelectedTower());
+  document.getElementById("towerPanelSellBtn").addEventListener("click", () => game && game.sellSelectedTower());
+  document.getElementById("towerPanelClose").addEventListener("click", () => game && game._deselectTower());
+  document.getElementById("changeMapBtn").addEventListener("click", () => {
+    document.getElementById("mapSelect").classList.remove("hidden");
+  });
+
+  // Tarjetas de mapa generadas dinámicamente desde MAPS (config.js):
+  // agregar un mapa nuevo en config.js la suma acá sin tocar este archivo.
+  const mapGrid = document.getElementById("mapGrid");
+  Object.values(MAPS).forEach((mapDef) => {
+    const btn = document.createElement("button");
+    btn.className = "map-card";
+    btn.innerHTML = `<strong>${mapDef.name}</strong>`;
+    btn.style.setProperty("--map-color", mapDef.terrainColors.top);
+    btn.addEventListener("click", () => beginGame(mapDef.id));
+    mapGrid.appendChild(btn);
+  });
 
   // Botones de torre generados dinámicamente desde TOWER_TYPES (config.js):
   // agregar una torre nueva en config.js la suma acá sin tocar este archivo.

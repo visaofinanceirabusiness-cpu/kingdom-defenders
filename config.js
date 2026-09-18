@@ -6,44 +6,82 @@
    no se toca la lógica.
    ========================================================================= */
 
-// ---- Mapa ----
-// path: lista de waypoints (centro del camino) que recorren los enemigos.
-// buildSpots: posiciones fijas donde se puede construir una torre.
-const MAP_CONFIG = {
-  width: 960,
-  height: 540,
-  path: [
-    { x: -20, y: 270 },
-    { x: 200, y: 270 },
-    { x: 200, y: 110 },
-    { x: 500, y: 110 },
-    { x: 500, y: 430 },
-    { x: 760, y: 430 },
-    { x: 760, y: 270 },
-    { x: 865, y: 270 }
-  ],
-  pathWidth: 46,
-  buildSpots: [
-    { x: 110, y: 190 },
-    { x: 330, y: 60 },
-    { x: 360, y: 200 },
-    { x: 420, y: 340 },
-    { x: 600, y: 480 },
-    { x: 690, y: 190 },
-    { x: 840, y: 340 },
-    { x: 850, y: 180 }
-  ],
-  castle: { x: 900, y: 270 }
+// ---- Mapas ----
+// Cada mapa define su propio path (waypoints que recorren los enemigos),
+// buildSpots (posiciones fijas para construir torres) y castle. Agregar un
+// mapa nuevo es agregar una entrada acá: el selector de mapa (index.html) y
+// el render (game.js) son genéricos y no necesitan tocarse.
+const MAPS = {
+  forest: {
+    id: "forest",
+    name: "Bosque de Ingleses",
+    width: 960,
+    height: 540,
+    path: [
+      { x: -20, y: 270 },
+      { x: 200, y: 270 },
+      { x: 200, y: 110 },
+      { x: 500, y: 110 },
+      { x: 500, y: 430 },
+      { x: 760, y: 430 },
+      { x: 760, y: 270 },
+      { x: 865, y: 270 }
+    ],
+    pathWidth: 46,
+    buildSpots: [
+      { x: 110, y: 190 },
+      { x: 330, y: 60 },
+      { x: 360, y: 200 },
+      { x: 420, y: 340 },
+      { x: 600, y: 480 },
+      { x: 690, y: 190 },
+      { x: 840, y: 340 },
+      { x: 850, y: 180 }
+    ],
+    castle: { x: 900, y: 270 },
+    terrainColors: { top: "#3f5c34", bottom: "#2f4527" }
+  },
+  mountain: {
+    id: "mountain",
+    name: "Desfiladero de Montaña",
+    width: 960,
+    height: 540,
+    path: [
+      { x: 480, y: -20 },
+      { x: 480, y: 150 },
+      { x: 200, y: 150 },
+      { x: 200, y: 400 },
+      { x: 650, y: 400 },
+      { x: 650, y: 180 },
+      { x: 865, y: 180 },
+      { x: 865, y: 270 }
+    ],
+    pathWidth: 46,
+    buildSpots: [
+      { x: 340, y: 150 },
+      { x: 60, y: 270 },
+      { x: 340, y: 270 },
+      { x: 200, y: 470 },
+      { x: 480, y: 470 },
+      { x: 760, y: 300 },
+      { x: 760, y: 120 },
+      { x: 900, y: 100 }
+    ],
+    castle: { x: 900, y: 270 },
+    terrainColors: { top: "#5a5850", bottom: "#39372f" }
+  }
 };
+
+const DEFAULT_MAP_ID = "forest";
 
 // ---- Castillo ----
 const CASTLE_CONFIG = {
-  maxHp: 100
+  maxHp: 150
 };
 
 // ---- Economía ----
 const ECONOMY_CONFIG = {
-  startingGold: 150
+  startingGold: 180
 };
 
 // ---- Progresión del jugador ----
@@ -53,7 +91,7 @@ const ECONOMY_CONFIG = {
 const PLAYER_CONFIG = {
   baseXp: 15,
   xpGrowth: 1.4,
-  maxLevel: 5
+  maxLevel: 8
 };
 
 const SAVE_CONFIG = {
@@ -121,6 +159,25 @@ const TOWER_TYPES = {
       { cost: 110, damage: 16, range: 130, fireRate: 0.85 },
       { cost: 160, damage: 24, range: 140, fireRate: 0.9 }
     ]
+  },
+  artillery: {
+    id: "artillery",
+    name: "Torre de Artillería",
+    icon: "💣",
+    description: "Disparo lento pero muy dañino, con área de impacto. Ideal contra enemigos resistentes.",
+    color: "#4a4a3a",
+    accentColor: "#8a7a3a",
+    projectileColor: "#d9c27a",
+    projectileSpeed: 260,
+    splashRadius: 65,
+    maxTargets: 4,
+    sellRefund: 0.55,
+    unlockLevel: 4,
+    levels: [
+      { cost: 130, damage: 38, range: 140, fireRate: 0.45 },
+      { cost: 150, damage: 55, range: 150, fireRate: 0.5 },
+      { cost: 210, damage: 78, range: 160, fireRate: 0.55 }
+    ]
   }
 };
 
@@ -150,6 +207,43 @@ const ENEMY_TYPES = {
     bodyColor: "#7a6a3a",
     darkColor: "#4f4526",
     damageToCastle: 8
+  },
+  darkKnight: {
+    id: "darkKnight",
+    name: "Caballero Oscuro",
+    hp: 90,
+    speed: 50,
+    reward: 14,
+    xp: 6,
+    radius: 14,
+    bodyColor: "#3a3a42",
+    darkColor: "#1c1c22",
+    damageToCastle: 10
+  },
+  troll: {
+    id: "troll",
+    name: "Troll",
+    hp: 220,
+    speed: 32,
+    reward: 25,
+    xp: 10,
+    radius: 18,
+    bodyColor: "#5a6b3a",
+    darkColor: "#333d20",
+    damageToCastle: 15
+  },
+  boss: {
+    id: "boss",
+    name: "Señor de la Guerra",
+    hp: 900,
+    speed: 28,
+    reward: 150,
+    xp: 60,
+    radius: 26,
+    bodyColor: "#6b1f2a",
+    darkColor: "#3a0f14",
+    damageToCastle: 30,
+    isBoss: true
   }
 };
 
@@ -159,15 +253,72 @@ const ENEMY_TYPES = {
 const WAVE_CONFIG = [
   {
     label: "Oleada 1",
-    groups: [
-      { type: "goblin", count: 10, interval: 0.9, delay: 0 }
-    ]
+    groups: [{ type: "goblin", count: 10, interval: 0.9, delay: 0 }]
   },
   {
     label: "Oleada 2",
     groups: [
       { type: "goblin", count: 12, interval: 0.7, delay: 0 },
       { type: "orco", count: 6, interval: 1.3, delay: 3 }
+    ]
+  },
+  {
+    label: "Oleada 3",
+    groups: [
+      { type: "goblin", count: 14, interval: 0.6, delay: 0 },
+      { type: "orco", count: 8, interval: 1.1, delay: 2 }
+    ]
+  },
+  {
+    label: "Oleada 4",
+    groups: [
+      { type: "orco", count: 10, interval: 1, delay: 0 },
+      { type: "darkKnight", count: 3, interval: 1.8, delay: 4 }
+    ]
+  },
+  {
+    label: "Oleada 5",
+    groups: [
+      { type: "goblin", count: 10, interval: 0.6, delay: 0 },
+      { type: "orco", count: 10, interval: 0.9, delay: 2 },
+      { type: "darkKnight", count: 5, interval: 1.6, delay: 6 }
+    ]
+  },
+  {
+    label: "Oleada 6",
+    groups: [
+      { type: "orco", count: 8, interval: 0.9, delay: 0 },
+      { type: "darkKnight", count: 8, interval: 1.4, delay: 3 }
+    ]
+  },
+  {
+    label: "Oleada 7",
+    groups: [
+      { type: "darkKnight", count: 10, interval: 1.2, delay: 0 },
+      { type: "troll", count: 2, interval: 2.5, delay: 6 }
+    ]
+  },
+  {
+    label: "Oleada 8",
+    groups: [
+      { type: "orco", count: 14, interval: 0.8, delay: 0 },
+      { type: "darkKnight", count: 8, interval: 1.3, delay: 4 },
+      { type: "troll", count: 3, interval: 2.2, delay: 9 }
+    ]
+  },
+  {
+    label: "Oleada 9",
+    groups: [
+      { type: "darkKnight", count: 10, interval: 1.1, delay: 0 },
+      { type: "troll", count: 5, interval: 2, delay: 5 }
+    ]
+  },
+  {
+    label: "Oleada 10 — ¡Jefe final!",
+    groups: [
+      { type: "goblin", count: 6, interval: 0.8, delay: 0 },
+      { type: "orco", count: 4, interval: 1, delay: 2 },
+      { type: "boss", count: 1, interval: 0, delay: 8 }
     ]
   }
 ];
