@@ -26,6 +26,7 @@ body{
   justify-content:center;
   width:100vw;
   height:100vh;
+  height:100dvh; /* en mobile, 100vh incluye el área tapada por la barra del navegador */
   overflow:hidden;
 }
 
@@ -33,6 +34,7 @@ body{
   position:relative;
   width:100vw;
   height:100vh;
+  height:100dvh;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -70,7 +72,8 @@ body{
 .hud-bottom{
   position:absolute; bottom:0; left:0; right:0; z-index:10;
   display:flex; align-items:center; justify-content:space-between;
-  gap:12px; padding:12px 16px;
+  flex-wrap:wrap;
+  gap:8px 12px; padding:10px 12px;
   background:linear-gradient(0deg, rgba(20,16,10,.92) 0%, rgba(20,16,10,0) 100%);
 }
 .hud-message{font-size:13px; opacity:.9; max-width:60%}
@@ -209,4 +212,15 @@ canvas.is-targeting{cursor:cell}
   .hud-top{font-size:12px}
   .castle-hpbar{width:80px}
   .tower-btn{width:44px; height:44px; font-size:18px}
+}
+
+/* Celulares en horizontal: poca altura disponible, se achican HUD/botones */
+@media (max-height:480px){
+  .hud-message{display:none}
+  .hud-top{font-size:11px; padding:6px 10px; gap:8px}
+  .hud-bottom{padding:6px 10px; gap:6px}
+  .castle-hpbar{width:70px; height:9px}
+  .xp-bar{width:60px}
+  .tower-btn,.ability-btn{width:40px; height:40px; font-size:16px}
+  .btn{padding:7px 12px; font-size:12px}
 }
