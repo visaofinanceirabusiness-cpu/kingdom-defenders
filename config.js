@@ -95,7 +95,9 @@ const PLAYER_CONFIG = {
 };
 
 const SAVE_CONFIG = {
-  playerProgressKey: "kingdomDefenders.playerProgress"
+  playerProgressKey: "kingdomDefenders.playerProgress",
+  runStateKey: "kingdomDefenders.runState",
+  soundMutedKey: "kingdomDefenders.soundMuted"
 };
 
 // ---- Torres ----
@@ -368,4 +370,20 @@ const ABILITY_TYPES = {
     maxTargets: 4,
     chainRadius: 90
   }
+};
+
+// ---- Sonido ----
+// Sintetizado con Web Audio (osciladores), sin archivos de audio externos.
+// wave: forma de onda. freq -> freqEnd: barrido de frecuencia durante duration (segundos).
+const SOUND_TYPES = {
+  build: { wave: "sine", freq: 440, freqEnd: 660, duration: 0.12, volume: 0.07 },
+  upgrade: { wave: "sine", freq: 440, freqEnd: 880, duration: 0.18, volume: 0.08 },
+  sell: { wave: "sine", freq: 440, freqEnd: 220, duration: 0.14, volume: 0.06 },
+  death: { wave: "sawtooth", freq: 220, freqEnd: 80, duration: 0.15, volume: 0.06 },
+  castleHit: { wave: "triangle", freq: 120, duration: 0.15, volume: 0.1 },
+  ability: { wave: "sawtooth", freq: 300, freqEnd: 900, duration: 0.2, volume: 0.09 },
+  waveStart: { wave: "square", freq: 220, freqEnd: 440, duration: 0.3, volume: 0.08 },
+  levelUp: { wave: "sine", freq: 440, freqEnd: 1100, duration: 0.35, volume: 0.1 },
+  victory: { wave: "sine", freq: 523, freqEnd: 1046, duration: 0.6, volume: 0.12 },
+  defeat: { wave: "sawtooth", freq: 200, freqEnd: 60, duration: 0.6, volume: 0.1 }
 };

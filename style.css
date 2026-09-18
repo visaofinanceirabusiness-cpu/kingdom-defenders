@@ -28,7 +28,13 @@ body{
   height:100vh;
   height:100dvh; /* en mobile, 100vh incluye el área tapada por la barra del navegador */
   overflow:hidden;
+  touch-action:manipulation; /* sin delay de doble-tap al tocar botones/canvas */
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+  -webkit-user-select:none;
 }
+
+button{touch-action:manipulation; -webkit-tap-highlight-color:transparent}
 
 .game-wrap{
   position:relative;
@@ -192,6 +198,11 @@ canvas.is-targeting{cursor:cell}
   transition:transform .1s ease, filter .1s ease;
 }
 .map-card:hover{filter:brightness(1.12); transform:translateY(-2px)}
+.map-card--resume{
+  border-color:var(--gold);
+  box-shadow:0 0 0 2px rgba(224,178,58,.5), 0 8px 20px -8px rgba(0,0,0,.7);
+}
+.map-card small{font-weight:400; opacity:.85; font-size:12px}
 
 /* Pantalla final */
 .end-screen{

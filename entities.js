@@ -126,6 +126,107 @@ class Enemy {
 }
 
 // ---------------------------------------------------------------------------
+// Efectos visuales (partículas, texto flotante, rayos): solo presentación,
+// no afectan el balance del juego. update(dt) + draw(ctx) + alive, como
+// cualquier otra entidad, para poder vivir en el mismo array genérico.
+// ---------------------------------------------------------------------------
+class Particle {
+  constructor(x, y, vx, vy, color, life, radius) {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.color = color;
+    this.life = life;
+    this.maxLife = life;
+    this.radius = radius;
+    this.alive = true;
+  }
+
+  update(dt) {
+    this.life -= dt;
+    if (this.life <= 0) {
+      this.alive = false;
+      return;
+    }
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+    this.vx *= 0.93;
+    this.vy *= 0.93;
+  }
+
+  draw(ctx) {
+    const t = Math.max(0, this.life / this.maxLife);
+    ctx.globalAlpha = t;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius * t, 0, Math.PI * 2);
+    ctx.fillStyle = this.color;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+class FloatingText {
+  constructor(x, y, text, color) {
+    this.x = x;
+    this.y = y;
+    this.text = text;
+    this.color = color;
+    this.life = 0.8;
+    this.maxLife = 0.8;
+    this.alive = true;
+  }
+
+  update(dt) {
+    this.life -= dt;
+    if (this.life <= 0) {
+      this.alive = false;
+      return;
+    }
+    this.y -= 26 * dt;
+  }
+
+  draw(ctx) {
+    const t = Math.max(0, this.life / this.maxLife);
+    ctx.globalAlpha = t;
+    ctx.fillStyle = this.color;
+    ctx.font = "bold 13px 'Cinzel', Georgia, serif";
+    ctx.textAlign = "center";
+    ctx.fillText(this.text, this.x, this.y);
+    ctx.globalAlpha = 1;
+    ctx.textAlign = "start";
+  }
+}
+
+class LightningEffect {
+  constructor(points, color) {
+    this.points = points;
+    this.color = color;
+    this.life = 0.25;
+    this.maxLife = 0.25;
+    this.alive = true;
+  }
+
+  update(dt) {
+    this.life -= dt;
+    if (this.life <= 0) this.alive = false;
+  }
+
+  draw(ctx) {
+    if (this.points.length < 2) return;
+    const t = Math.max(0, this.life / this.maxLife);
+    ctx.globalAlpha = t;
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(this.points[0].x, this.points[0].y);
+    for (let i = 1; i < this.points.length; i++) ctx.lineTo(this.points[i].x, this.points[i].y);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Projectile
 // ---------------------------------------------------------------------------
 class Projectile {
@@ -140,6 +241,7 @@ class Projectile {
     this.speed = speed;
     this.color = color;
     this.alive = true;
+    this.justImpacted = false; // flag de un frame, para disparar efectos de impacto
     const opts = options || {};
     this.slowFactor = opts.slowFactor || null;
     this.slowDuration = opts.slowDuration || 0;
@@ -148,6 +250,7 @@ class Projectile {
   }
 
   _onImpact(enemies) {
+    this.justImpacted = true;
     this.target.takeDamage(this.damage);
     if (this.slowFactor) this.target.applySlow(this.slowFactor, this.slowDuration);
 
@@ -252,6 +355,16 @@ class Tower {
   sellValue() {
     const ratio = this.def.sellRefund != null ? this.def.sellRefund : 0.6;
     return Math.round(this.totalInvested * ratio);
+  }
+
+  // Reconstruye una torre guardada (sistema de guardado) al nivel indicado,
+  // recalculando el oro invertido a partir de los costos de cada nivel.
+  restoreLevel(levelIndex) {
+    this.levelIndex = Math.min(Math.max(levelIndex || 0, 0), this.maxLevel - 1);
+    let invested = 0;
+    for (let i = 0; i <= this.levelIndex; i++) invested += this.def.levels[i].cost;
+    this.totalInvested = invested;
+    this._applyLevelStats(this.def.levels[this.levelIndex]);
   }
 
   findTarget(enemies) {

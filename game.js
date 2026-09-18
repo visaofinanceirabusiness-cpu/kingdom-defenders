@@ -5,11 +5,68 @@
    Lee toda su data de config.js. No hardcodea números de balance.
    ========================================================================= */
 
+// ---------------------------------------------------------------------------
+// SoundManager — sonido sintetizado con Web Audio (sin archivos externos).
+// Lee sus presets de SOUND_TYPES (config.js). Silenciable, y el mute
+// persiste en localStorage.
+// ---------------------------------------------------------------------------
+class SoundManager {
+  constructor() {
+    this.ctx = null;
+    this.muted = false;
+    try {
+      this.muted = localStorage.getItem(SAVE_CONFIG.soundMutedKey) === "1";
+    } catch (e) {
+      // sin localStorage: arranca con sonido activado.
+    }
+  }
+
+  _ensureContext() {
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) this.ctx = new AudioCtx();
+    }
+    return this.ctx;
+  }
+
+  play(type) {
+    if (this.muted) return;
+    const preset = SOUND_TYPES[type];
+    const ctx = this._ensureContext();
+    if (!preset || !ctx) return;
+    if (ctx.state === "suspended") ctx.resume();
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = preset.wave;
+    osc.frequency.setValueAtTime(preset.freq, ctx.currentTime);
+    if (preset.freqEnd) {
+      osc.frequency.exponentialRampToValueAtTime(preset.freqEnd, ctx.currentTime + preset.duration);
+    }
+    gain.gain.setValueAtTime(preset.volume, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + preset.duration);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + preset.duration);
+  }
+
+  toggleMute() {
+    this.muted = !this.muted;
+    try {
+      localStorage.setItem(SAVE_CONFIG.soundMutedKey, this.muted ? "1" : "0");
+    } catch (e) {
+      // sin localStorage: el mute solo dura esta sesión.
+    }
+    return this.muted;
+  }
+}
+
 class Game {
-  constructor(canvas, hud, mapId) {
+  constructor(canvas, hud, mapId, sound) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.hud = hud; // referencias a elementos del HUD (ver index.html)
+    this.sound = sound || new SoundManager();
 
     this.mapId = mapId && MAPS[mapId] ? mapId : DEFAULT_MAP_ID;
     this.map = MAPS[this.mapId];
@@ -20,6 +77,8 @@ class Game {
     this.towers = [];
     this.enemies = [];
     this.projectiles = [];
+    this.effects = []; // partículas, texto flotante, rayos: solo presentación
+    this.castleFlashTimer = 0;
 
     this.selectedTowerType = Object.keys(TOWER_TYPES)[0]; // torre elegida en el picker para construir
     this.spotTowers = new Map(); // "x,y" -> Tower construida en ese punto
@@ -46,6 +105,58 @@ class Game {
     this._bindInput();
     this._updateHUD();
     this._setMessage('Presioná "Iniciar oleada" cuando estés listo.');
+    this._saveRunState();
+  }
+
+  // -----------------------------------------------------------------------
+  // Guardado de partida (checkpoint entre oleadas, persiste en localStorage)
+  // -----------------------------------------------------------------------
+  static loadRunState() {
+    try {
+      const raw = localStorage.getItem(SAVE_CONFIG.runStateKey);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  _saveRunState() {
+    if (this.state !== "waiting") return; // solo se guarda en checkpoints simples de serializar
+    try {
+      const data = {
+        mapId: this.mapId,
+        gold: this.gold,
+        castleHp: this.castleHp,
+        currentWaveIndex: this.currentWaveIndex,
+        towers: this.towers.map((t) => ({ typeId: t.typeId, x: t.x, y: t.y, levelIndex: t.levelIndex }))
+      };
+      localStorage.setItem(SAVE_CONFIG.runStateKey, JSON.stringify(data));
+    } catch (e) {
+      // sin persistencia disponible: la partida sigue igual, solo no se guarda.
+    }
+  }
+
+  _clearRunState() {
+    try {
+      localStorage.removeItem(SAVE_CONFIG.runStateKey);
+    } catch (e) {
+      // nada que limpiar si no hay persistencia disponible.
+    }
+  }
+
+  restoreRunState(saved) {
+    this.gold = saved.gold;
+    this.castleHp = Math.min(saved.castleHp, this.castleMaxHp);
+    this.currentWaveIndex = saved.currentWaveIndex;
+    for (const t of saved.towers || []) {
+      if (!TOWER_TYPES[t.typeId]) continue;
+      const tower = new Tower(t.typeId, t.x, t.y);
+      tower.restoreLevel(t.levelIndex);
+      this.towers.push(tower);
+      this.spotTowers.set(`${t.x},${t.y}`, tower);
+    }
+    this._updateHUD();
+    this._setMessage('Partida restaurada. Presioná "Iniciar oleada" cuando estés listo.');
   }
 
   // -----------------------------------------------------------------------
@@ -100,7 +211,9 @@ class Game {
     const tower = new Tower(this.selectedTowerType, spot.x, spot.y);
     this.towers.push(tower);
     this.spotTowers.set(key, tower);
+    this.sound.play("build");
     this._updateHUD();
+    this._saveRunState();
   }
 
   _spotAt(x, y) {
@@ -136,8 +249,10 @@ class Game {
     }
     this.gold -= cost;
     tower.upgrade();
+    this.sound.play("upgrade");
     this._updateHUD();
     this._updateTowerPanel();
+    this._saveRunState();
   }
 
   sellSelectedTower() {
@@ -148,8 +263,10 @@ class Game {
     for (const [key, t] of this.spotTowers) {
       if (t === tower) this.spotTowers.delete(key);
     }
+    this.sound.play("sell");
     this._deselectTower();
     this._updateHUD();
+    this._saveRunState();
   }
 
   // -----------------------------------------------------------------------
@@ -197,7 +314,28 @@ class Game {
       leveledUp = true;
     }
     this._savePlayerProgress();
-    if (leveledUp) this._setMessage(`¡Subiste a nivel ${this.playerLevel}!`);
+    if (leveledUp) {
+      this._setMessage(`¡Subiste a nivel ${this.playerLevel}!`);
+      this.sound.play("levelUp");
+      this._spawnFloatingText(this.map.castle.x, this.map.castle.y - 70, `¡Nivel ${this.playerLevel}!`, "#4f9bd6");
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Efectos visuales (partículas / texto flotante / rayos)
+  // -----------------------------------------------------------------------
+  _spawnBurst(x, y, color, count) {
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 40 + Math.random() * 90;
+      this.effects.push(
+        new Particle(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, color, 0.35 + Math.random() * 0.25, 2 + Math.random() * 2)
+      );
+    }
+  }
+
+  _spawnFloatingText(x, y, text, color) {
+    this.effects.push(new FloatingText(x, y, text, color));
   }
 
   // -----------------------------------------------------------------------
@@ -241,9 +379,12 @@ class Game {
 
     if (id === "freeze") {
       for (const e of this.enemies) {
-        if (e.alive) e.applySlow(0, def.duration);
+        if (!e.alive) continue;
+        e.applySlow(0, def.duration);
+        this._spawnBurst(e.x, e.y, "#a8d8ff", 5);
       }
     } else if (id === "fireRain" && point) {
+      this._spawnBurst(point.x, point.y, "#ff8a3d", 16);
       for (const e of this.enemies) {
         if (e.alive && Math.hypot(e.x - point.x, e.y - point.y) <= def.radius) {
           e.takeDamage(def.damage);
@@ -267,6 +408,7 @@ class Game {
         return;
       }
       const hit = new Set([target]);
+      const chainPoints = [{ x: point.x, y: point.y }, { x: target.x, y: target.y }];
       target.takeDamage(def.damage);
       let hits = 1;
       for (const e of this.enemies) {
@@ -275,13 +417,16 @@ class Game {
         if (Math.hypot(e.x - target.x, e.y - target.y) <= def.chainRadius) {
           e.takeDamage(def.damage);
           hit.add(e);
+          chainPoints.push({ x: e.x, y: e.y });
           hits++;
         }
       }
+      this.effects.push(new LightningEffect(chainPoints, "#fff2c2"));
     }
 
     this.abilityCooldowns[id] = def.cooldown;
     this.armedAbility = null;
+    this.sound.play("ability");
     this._setMessage(`${def.name} usada.`);
     this._updateHUD();
   }
@@ -317,6 +462,7 @@ class Game {
     this.enemiesToSpawn = total;
     this.waveTimer = 0;
     this.state = "wave";
+    this.sound.play("waveStart");
     this._setMessage(`${wave.label} en curso — ${total} enemigos`);
   }
 
@@ -359,6 +505,10 @@ class Game {
     for (const id in this.abilityCooldowns) {
       if (this.abilityCooldowns[id] > 0) this.abilityCooldowns[id] = Math.max(0, this.abilityCooldowns[id] - dt);
     }
+    if (this.castleFlashTimer > 0) this.castleFlashTimer = Math.max(0, this.castleFlashTimer - dt);
+
+    this.effects = this.effects.filter((e) => e.alive);
+    for (const e of this.effects) e.update(dt);
 
     if (this.state === "countdown") {
       this.countdown -= dt;
@@ -385,7 +535,13 @@ class Game {
       tower.update(dt, this.enemies, this.projectiles);
     }
 
-    for (const proj of this.projectiles) proj.update(dt, this.enemies);
+    for (const proj of this.projectiles) {
+      proj.update(dt, this.enemies);
+      if (proj.justImpacted) {
+        this._spawnBurst(proj.x, proj.y, proj.color, 4);
+        proj.justImpacted = false;
+      }
+    }
 
     // Recompensas por enemigos muertos por daño (no los que llegaron al castillo)
     for (const enemy of this.enemies) {
@@ -396,6 +552,9 @@ class Game {
         this.xpEarned += enemy.def.xp;
         this.enemiesDefeated++;
         this._addPlayerXp(enemy.def.xp);
+        this.sound.play("death");
+        this._spawnBurst(enemy.x, enemy.y, enemy.def.bodyColor, enemy.def.isBoss ? 22 : 9);
+        this._spawnFloatingText(enemy.x, enemy.y - enemy.radius - 4, `+${enemy.def.reward}`, "#ffd76b");
       }
     }
 
@@ -416,6 +575,8 @@ class Game {
 
   _damageCastle(amount) {
     this.castleHp = Math.max(0, this.castleHp - amount);
+    this.castleFlashTimer = 0.25;
+    this.sound.play("castleHit");
   }
 
   _onWaveCleared() {
@@ -426,16 +587,21 @@ class Game {
       this.state = "waiting";
       this._setMessage('Oleada superada. Presioná "Iniciar oleada" para continuar.');
       this._updateHUD();
+      this._saveRunState();
     }
   }
 
   _onVictory() {
     this.state = "victory";
+    this.sound.play("victory");
+    this._clearRunState();
     this._showEndScreen(true);
   }
 
   _onDefeat() {
     this.state = "defeat";
+    this.sound.play("defeat");
+    this._clearRunState();
     this._showEndScreen(false);
   }
 
@@ -542,6 +708,8 @@ class Game {
     this.towers = [];
     this.enemies = [];
     this.projectiles = [];
+    this.effects = [];
+    this.castleFlashTimer = 0;
     this.spotTowers.clear();
     this._deselectTower();
     Object.keys(this.abilityCooldowns).forEach((id) => (this.abilityCooldowns[id] = 0));
@@ -554,6 +722,7 @@ class Game {
     this.hud.endScreen.classList.add("hidden");
     this._setMessage('Presioná "Iniciar oleada" cuando estés listo.');
     this._updateHUD();
+    this._saveRunState();
   }
 
   // -----------------------------------------------------------------------
@@ -572,6 +741,12 @@ class Game {
     for (const tower of this.towers) tower.draw(ctx, tower === this.selectedTower);
     for (const enemy of this.enemies) enemy.draw(ctx);
     for (const proj of this.projectiles) proj.draw(ctx);
+    for (const e of this.effects) e.draw(ctx);
+
+    if (this.castleFlashTimer > 0) {
+      ctx.fillStyle = `rgba(163,40,60,${(this.castleFlashTimer / 0.25) * 0.35})`;
+      ctx.fillRect(0, 0, width, height);
+    }
   }
 
   _drawTerrain(ctx) {

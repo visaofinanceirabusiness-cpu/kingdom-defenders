@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kingdom Defenders — Fase 4</title>
+<title>Kingdom Defenders — Fase 5</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&display=swap" rel="stylesheet">
@@ -33,6 +33,7 @@
       <div class="xp-bar"><div class="xp-bar__fill" id="hudXpBar" style="width:0%"></div></div>
     </div>
     <button class="btn btn--sm" id="changeMapBtn">Cambiar mapa</button>
+    <button class="btn btn--sm" id="muteBtn" aria-label="Silenciar sonido">🔊</button>
   </div>
 
   <div class="countdown" id="hudCountdown"></div>
@@ -97,12 +98,14 @@
   };
 
   let game = null;
+  const sound = new SoundManager();
 
-  function beginGame(mapId) {
+  function beginGame(mapId, savedRun) {
     document.getElementById("mapSelect").classList.add("hidden");
     document.getElementById("endScreen").classList.add("hidden");
     if (game) game.running = false; // corta el loop anterior antes de reemplazarlo
-    game = new Game(canvas, hud, mapId);
+    game = new Game(canvas, hud, mapId, sound);
+    if (savedRun) game.restoreRunState(savedRun);
     game.start();
   }
 
@@ -112,20 +115,46 @@
   document.getElementById("towerPanelSellBtn").addEventListener("click", () => game && game.sellSelectedTower());
   document.getElementById("towerPanelClose").addEventListener("click", () => game && game._deselectTower());
   document.getElementById("changeMapBtn").addEventListener("click", () => {
+    renderMapGrid();
     document.getElementById("mapSelect").classList.remove("hidden");
   });
 
-  // Tarjetas de mapa generadas dinámicamente desde MAPS (config.js):
-  // agregar un mapa nuevo en config.js la suma acá sin tocar este archivo.
-  const mapGrid = document.getElementById("mapGrid");
-  Object.values(MAPS).forEach((mapDef) => {
-    const btn = document.createElement("button");
-    btn.className = "map-card";
-    btn.innerHTML = `<strong>${mapDef.name}</strong>`;
-    btn.style.setProperty("--map-color", mapDef.terrainColors.top);
-    btn.addEventListener("click", () => beginGame(mapDef.id));
-    mapGrid.appendChild(btn);
+  const muteBtn = document.getElementById("muteBtn");
+  const updateMuteBtn = () => (muteBtn.textContent = sound.muted ? "🔇" : "🔊");
+  updateMuteBtn();
+  muteBtn.addEventListener("click", () => {
+    sound.toggleMute();
+    updateMuteBtn();
   });
+
+  // Tarjetas de mapa generadas dinámicamente desde MAPS (config.js), más una
+  // tarjeta "Continuar partida" si hay una partida guardada. Se re-renderiza
+  // cada vez que se abre el selector para reflejar el último guardado.
+  const mapGrid = document.getElementById("mapGrid");
+
+  function renderMapGrid() {
+    mapGrid.innerHTML = "";
+
+    const savedRun = Game.loadRunState();
+    if (savedRun && MAPS[savedRun.mapId]) {
+      const resumeBtn = document.createElement("button");
+      resumeBtn.className = "map-card map-card--resume";
+      resumeBtn.innerHTML = `<strong>▶ Continuar partida</strong><br><small>${MAPS[savedRun.mapId].name} — Oleada ${savedRun.currentWaveIndex + 1} / ${WAVE_CONFIG.length}</small>`;
+      resumeBtn.addEventListener("click", () => beginGame(savedRun.mapId, savedRun));
+      mapGrid.appendChild(resumeBtn);
+    }
+
+    Object.values(MAPS).forEach((mapDef) => {
+      const btn = document.createElement("button");
+      btn.className = "map-card";
+      btn.innerHTML = `<strong>${mapDef.name}</strong>`;
+      btn.style.setProperty("--map-color", mapDef.terrainColors.top);
+      btn.addEventListener("click", () => beginGame(mapDef.id));
+      mapGrid.appendChild(btn);
+    });
+  }
+
+  renderMapGrid();
 
   // Botones de torre generados dinámicamente desde TOWER_TYPES (config.js):
   // agregar una torre nueva en config.js la suma acá sin tocar este archivo.
