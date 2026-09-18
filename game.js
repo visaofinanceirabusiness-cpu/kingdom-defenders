@@ -61,12 +61,28 @@ class SoundManager {
   }
 }
 
+// Lista de torres cacheada una sola vez (evita reasignar Object.values(TOWER_TYPES)
+// en cada frame dentro de _updateHUD, que corre a 60fps).
+const TOWER_LIST = Object.values(TOWER_TYPES);
+
+// Compacta un array in-place, removiendo los elementos con alive=false, sin
+// asignar un array nuevo (menos presión sobre el garbage collector que .filter()
+// corriendo cada frame en el loop principal).
+function compactAlive(arr) {
+  let write = 0;
+  for (let read = 0; read < arr.length; read++) {
+    if (arr[read].alive) arr[write++] = arr[read];
+  }
+  arr.length = write;
+}
+
 class Game {
   constructor(canvas, hud, mapId, sound) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.hud = hud; // referencias a elementos del HUD (ver index.html)
     this.sound = sound || new SoundManager();
+    this._loop = this._loop.bind(this); // bindeado una sola vez, no en cada requestAnimationFrame
 
     this.mapId = mapId && MAPS[mapId] ? mapId : DEFAULT_MAP_ID;
     this.map = MAPS[this.mapId];
@@ -487,7 +503,7 @@ class Game {
   start() {
     this.running = true;
     this.lastTime = performance.now();
-    requestAnimationFrame(this._loop.bind(this));
+    requestAnimationFrame(this._loop);
   }
 
   _loop(now) {
@@ -498,7 +514,7 @@ class Game {
     this._update(dt);
     this._render();
 
-    requestAnimationFrame(this._loop.bind(this));
+    requestAnimationFrame(this._loop);
   }
 
   _update(dt) {
@@ -507,7 +523,7 @@ class Game {
     }
     if (this.castleFlashTimer > 0) this.castleFlashTimer = Math.max(0, this.castleFlashTimer - dt);
 
-    this.effects = this.effects.filter((e) => e.alive);
+    compactAlive(this.effects);
     for (const e of this.effects) e.update(dt);
 
     if (this.state === "countdown") {
@@ -558,8 +574,8 @@ class Game {
       }
     }
 
-    this.enemies = this.enemies.filter((e) => e.alive);
-    this.projectiles = this.projectiles.filter((p) => p.alive);
+    compactAlive(this.enemies);
+    compactAlive(this.projectiles);
 
     this._updateHUD();
 
@@ -575,7 +591,7 @@ class Game {
 
   _damageCastle(amount) {
     this.castleHp = Math.max(0, this.castleHp - amount);
-    this.castleFlashTimer = 0.25;
+    this.castleFlashTimer = GAME_CONFIG.castleFlashDuration;
     this.sound.play("castleHit");
   }
 
@@ -635,7 +651,7 @@ class Game {
     }
     if (h.towerButtons) {
       h.towerButtons.forEach((btn, i) => {
-        const def = Object.values(TOWER_TYPES)[i];
+        const def = TOWER_LIST[i];
         const locked = this.playerLevel < (def.unlockLevel || 1);
         btn.classList.toggle("is-locked", locked);
       });
@@ -744,7 +760,7 @@ class Game {
     for (const e of this.effects) e.draw(ctx);
 
     if (this.castleFlashTimer > 0) {
-      ctx.fillStyle = `rgba(163,40,60,${(this.castleFlashTimer / 0.25) * 0.35})`;
+      ctx.fillStyle = `rgba(163,40,60,${(this.castleFlashTimer / GAME_CONFIG.castleFlashDuration) * 0.35})`;
       ctx.fillRect(0, 0, width, height);
     }
   }

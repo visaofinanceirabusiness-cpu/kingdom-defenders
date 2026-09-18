@@ -328,7 +328,8 @@ const WAVE_CONFIG = [
 // ---- Constantes generales del loop ----
 const GAME_CONFIG = {
   countdownBeforeWave: 3, // segundos de cuenta regresiva antes de iniciar
-  targetFPS: 60
+  targetFPS: 60,
+  castleFlashDuration: 0.25 // segundos que dura el flash rojo al recibir daño el castillo
 };
 
 // ---- Habilidades especiales ----

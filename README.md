@@ -23,5 +23,8 @@ Abrir `index.html` directamente en el navegador, o servir la carpeta con cualqui
 - [x] **Fase 3** — XP y nivel del jugador (persiste en localStorage), desbloqueo de torres por nivel (Torre de Magos desde nivel 2), 3 habilidades especiales con cooldown: Congelar, Lluvia de Fuego y Rayo en Cadena.
 - [x] **Fase 4** — 10 oleadas con jefe final (Señor de la Guerra) en la Oleada 10, 2 enemigos nuevos (Caballero Oscuro, Troll), Torre de Artillería (nivel 4), selector de 2 mapas (Bosque de Ingleses / Desfiladero de Montaña) con botón para cambiar de mapa en cualquier momento, castillo y economía reajustados para la campaña más larga.
 - [x] **Fase 5** — partículas y texto flotante (muerte de enemigos, impactos, oro/XP ganado, subida de nivel), flash de daño al castillo, efectos propios por habilidad (chispas de hielo, ráfaga de fuego, rayo en cadena), sonido sintetizado con Web Audio (sin archivos de audio) con botón de silenciar, mejoras táctiles (sin delay de doble-tap, sin resaltado azul), y guardado/reanudación de partida en curso (mapa, oro, vida del castillo, oleada y torres) vía localStorage.
-- [ ] **Fase 6** — optimización y preparación para publicación.
-- [ ] **Fase 6** — optimización y preparación para publicación.
+- [x] **Fase 6** — optimización (loop principal sin asignar funciones/arrays nuevos en cada frame, lista de torres cacheada) y preparación para publicación (meta tags, favicon, ayuda rápida en pantalla de selección de mapa).
+
+## Estado
+
+Las 6 fases del plan original están completas: núcleo jugable, economía, progresión del jugador, contenido avanzado (jefe, mapas, torre extra), pulido (efectos/sonido/guardado) y optimización final. El juego es jugable de punta a punta, desde el bosque hasta el Señor de la Guerra en la Oleada 10.

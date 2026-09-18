@@ -187,6 +187,7 @@ canvas.is-targeting{cursor:cell}
 .map-select h1{font-size:32px; margin:0; color:var(--gold)}
 .map-select__hint{margin:0; opacity:.85; font-size:14px}
 .map-select__grid{display:flex; gap:16px; flex-wrap:wrap; justify-content:center}
+.map-select__howto{margin:8px 0 0; max-width:520px; font-size:12px; opacity:.65; line-height:1.6}
 .map-card{
   font-family:inherit;
   width:180px; padding:24px 12px;
