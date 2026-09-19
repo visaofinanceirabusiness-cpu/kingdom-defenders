@@ -39,7 +39,18 @@ const MAPS = {
       { x: 850, y: 180 }
     ],
     castle: { x: 900, y: 270 },
-    terrainColors: { top: "#3f5c34", bottom: "#2f4527" }
+    terrainColors: { top: "#3f5c34", bottom: "#2f4527" },
+    decorationType: "tree",
+    decorations: [
+      { x: 70, y: 60 },
+      { x: 70, y: 460 },
+      { x: 300, y: 480 },
+      { x: 620, y: 70 },
+      { x: 930, y: 90 },
+      { x: 930, y: 470 },
+      { x: 350, y: 350 },
+      { x: 630, y: 250 }
+    ]
   },
   mountain: {
     id: "mountain",
@@ -68,7 +79,18 @@ const MAPS = {
       { x: 900, y: 100 }
     ],
     castle: { x: 900, y: 270 },
-    terrainColors: { top: "#5a5850", bottom: "#39372f" }
+    terrainColors: { top: "#5a5850", bottom: "#39372f" },
+    decorationType: "rock",
+    decorations: [
+      { x: 100, y: 100 },
+      { x: 80, y: 400 },
+      { x: 550, y: 60 },
+      { x: 780, y: 420 },
+      { x: 910, y: 330 },
+      { x: 600, y: 470 },
+      { x: 340, y: 40 },
+      { x: 900, y: 470 }
+    ]
   }
 };
 
@@ -83,7 +105,7 @@ const DEFAULT_MAP_ID = "forest";
 // (el rombo resultante es más ancho que el rectángulo original).
 const ISO_CONFIG = {
   canvasWidth: 960,
-  canvasHeight: 640,
+  canvasHeight: 670, // 640 + margen para el grosor de las paredes de la plataforma
   scaleX: 0.5,
   scaleY: 0.28,
   offsetX: 375,

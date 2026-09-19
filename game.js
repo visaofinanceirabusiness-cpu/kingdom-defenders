@@ -96,6 +96,54 @@ function compactAlive(arr) {
   arr.length = write;
 }
 
+// ---------------------------------------------------------------------------
+// Decoraciones del mapa (árboles, rocas): elementos estáticos, sin update(),
+// que entran en el mismo orden por profundidad que torres/enemigos para que
+// la superposición se vea correcta. (x,y) ya vienen proyectados a pantalla.
+// ---------------------------------------------------------------------------
+function drawTree(ctx, x, y) {
+  ctx.beginPath();
+  ctx.ellipse(x, y + 4, 16, 7, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(0,0,0,0.35)";
+  ctx.fill();
+
+  ctx.fillStyle = "#4a3420";
+  ctx.fillRect(x - 3, y - 18, 6, 20);
+
+  const grad = ctx.createRadialGradient(x - 6, y - 34, 4, x, y - 26, 24);
+  grad.addColorStop(0, "#7ba85a");
+  grad.addColorStop(1, "#2c4a22");
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(x, y - 30, 20, 0, Math.PI * 2);
+  ctx.arc(x - 12, y - 22, 14, 0, Math.PI * 2);
+  ctx.arc(x + 12, y - 24, 14, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawRock(ctx, x, y) {
+  ctx.beginPath();
+  ctx.ellipse(x, y + 3, 15, 6, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(0,0,0,0.3)";
+  ctx.fill();
+
+  const grad = ctx.createLinearGradient(x - 14, y - 18, x + 14, y);
+  grad.addColorStop(0, "#9a9890");
+  grad.addColorStop(1, "#4d4b46");
+  ctx.beginPath();
+  ctx.moveTo(x - 14, y);
+  ctx.lineTo(x - 9, y - 18);
+  ctx.lineTo(x + 5, y - 15);
+  ctx.lineTo(x + 15, y - 3);
+  ctx.lineTo(x + 10, y + 3);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = "#2b2a27";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
 class Game {
   constructor(canvas, hud, mapId, sound) {
     this.canvas = canvas;
@@ -777,6 +825,11 @@ class Game {
     // mundo (x+y menor) se dibuja primero, para que lo de adelante lo tape
     // correctamente. El castillo entra en el mismo orden que torres/enemigos.
     const drawables = [{ depth: this.map.castle.x + this.map.castle.y, draw: () => this._drawCastle(ctx) }];
+    const drawDecoration = this.map.decorationType === "rock" ? drawRock : drawTree;
+    for (const deco of this.map.decorations || []) {
+      const p = isoProject(deco.x, deco.y);
+      drawables.push({ depth: deco.x + deco.y, draw: () => drawDecoration(ctx, p.sx, p.sy) });
+    }
     for (const tower of this.towers) {
       drawables.push({ depth: tower.x + tower.y, draw: () => tower.draw(ctx, isoProject, tower === this.selectedTower) });
     }
@@ -799,31 +852,87 @@ class Game {
 
   _drawTerrain(ctx) {
     const { width, height, terrainColors } = this.map;
-    const corners = [isoProject(0, 0), isoProject(width, 0), isoProject(width, height), isoProject(0, height)];
+    // A=atrás, B=derecha, C=adelante (el punto más "bajo" en pantalla), D=izquierda.
+    const A = isoProject(0, 0);
+    const B = isoProject(width, 0);
+    const C = isoProject(width, height);
+    const D = isoProject(0, height);
+    const wallHeight = 42;
 
-    const grad = ctx.createLinearGradient(0, corners[0].sy, 0, corners[2].sy);
+    // Paredes laterales: le dan grosor a la plataforma (si no, el mapa se ve
+    // como una foto plana pegada en el aire, sin apoyo). Se dibujan primero,
+    // por debajo de los dos bordes "delanteros" (D-C e C-B) del rombo.
+    const drawWall = (p1, p2, colorTop, colorBottom) => {
+      const grad = ctx.createLinearGradient(0, p1.sy, 0, p1.sy + wallHeight);
+      grad.addColorStop(0, colorTop);
+      grad.addColorStop(1, colorBottom);
+      ctx.beginPath();
+      ctx.moveTo(p1.sx, p1.sy);
+      ctx.lineTo(p2.sx, p2.sy);
+      ctx.lineTo(p2.sx, p2.sy + wallHeight);
+      ctx.lineTo(p1.sx, p1.sy + wallHeight);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+    };
+    drawWall(D, C, "#1c1712", "#0c0a08"); // cara izquierda: menos luz
+    drawWall(C, B, "#2a2018", "#14100c"); // cara derecha: un poco más iluminada
+
+    // Cara superior (el piso jugable)
+    const grad = ctx.createLinearGradient(0, A.sy, 0, C.sy);
     grad.addColorStop(0, terrainColors.top);
     grad.addColorStop(1, terrainColors.bottom);
-    ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.moveTo(corners[0].sx, corners[0].sy);
-    for (let i = 1; i < corners.length; i++) ctx.lineTo(corners[i].sx, corners[i].sy);
+    ctx.moveTo(A.sx, A.sy);
+    ctx.lineTo(B.sx, B.sy);
+    ctx.lineTo(C.sx, C.sy);
+    ctx.lineTo(D.sx, D.sy);
     ctx.closePath();
+    ctx.fillStyle = grad;
     ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,0.3)";
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(0,0,0,0.35)";
+    ctx.lineWidth = 2;
     ctx.stroke();
 
-    // "textura" del terreno: manchas proyectadas, distribuidas de forma determinística
-    ctx.fillStyle = "rgba(0,0,0,0.08)";
-    for (let i = 0; i < 40; i++) {
-      const wx = (i * 137) % width;
-      const wy = (i * 79) % height;
-      const p = isoProject(wx, wy);
-      ctx.beginPath();
-      ctx.ellipse(p.sx, p.sy, 16, 8, 0, 0, Math.PI * 2);
-      ctx.fill();
+    this._drawGroundTiles(ctx, width, height);
+  }
+
+  // Piso a cuadros (tipo tablero isométrico) en vez de manchas difusas: cada
+  // celda es un rombo proyectado, alternando dos tonos para sugerir textura
+  // real (pasto/piedra) en vez de un color liso.
+  _drawGroundTiles(ctx, width, height) {
+    const tile = 60;
+    ctx.save();
+    const A = isoProject(0, 0);
+    const B = isoProject(width, 0);
+    const C = isoProject(width, height);
+    const D = isoProject(0, height);
+    ctx.beginPath();
+    ctx.moveTo(A.sx, A.sy);
+    ctx.lineTo(B.sx, B.sy);
+    ctx.lineTo(C.sx, C.sy);
+    ctx.lineTo(D.sx, D.sy);
+    ctx.closePath();
+    ctx.clip(); // recorta para que las celdas no se salgan del rombo del piso
+
+    for (let wy = 0; wy < height; wy += tile) {
+      for (let wx = 0; wx < width; wx += tile) {
+        const dark = ((wx / tile + wy / tile) & 1) === 0;
+        const p0 = isoProject(wx, wy);
+        const p1 = isoProject(wx + tile, wy);
+        const p2 = isoProject(wx + tile, wy + tile);
+        const p3 = isoProject(wx, wy + tile);
+        ctx.beginPath();
+        ctx.moveTo(p0.sx, p0.sy);
+        ctx.lineTo(p1.sx, p1.sy);
+        ctx.lineTo(p2.sx, p2.sy);
+        ctx.lineTo(p3.sx, p3.sy);
+        ctx.closePath();
+        ctx.fillStyle = dark ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.05)";
+        ctx.fill();
+      }
     }
+    ctx.restore();
   }
 
   _drawPath(ctx) {
