@@ -96,20 +96,21 @@ const MAPS = {
 
 const DEFAULT_MAP_ID = "forest";
 
-// ---- Proyección isométrica ----
+// ---- Escena 3D (Three.js) ----
 // El mapa (path, buildSpots, castle) sigue viviendo en coordenadas "de mundo"
 // (0-960, 0-540): la lógica del juego (movimiento, colisión, rango) no cambia.
-// Solo el render proyecta esas coordenadas a pantalla con esta transformación.
-// canvasWidth/canvasHeight son mayores que el mundo porque la vista isométrica
-// necesita espacio extra arriba (para la altura de sprites) y a los costados
-// (el rombo resultante es más ancho que el rectángulo original).
-const ISO_CONFIG = {
-  canvasWidth: 960,
-  canvasHeight: 670, // 640 + margen para el grosor de las paredes de la plataforma
-  scaleX: 0.5,
-  scaleY: 0.28,
-  offsetX: 375,
-  offsetY: 180
+// "unit" es cuántos px de mundo equivalen a 1 unidad de escena 3D: todo el
+// armado de meshes (render3d.js) divide por esto para no manejar números
+// gigantes en Three.js. El mapa queda centrado en el origen de la escena.
+const SCENE_CONFIG = {
+  unit: 20,
+  groundThickness: 2,
+  skyColor: "#0d0b09",
+  fogNear: 40,
+  fogFar: 90,
+  cameraFov: 42,
+  cameraPosition: { x: 0, y: 30, z: 27 },
+  cameraLookAt: { x: 0, y: 0, z: -2 }
 };
 
 // ---- Castillo ----

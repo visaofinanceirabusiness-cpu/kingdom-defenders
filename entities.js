@@ -1,7 +1,11 @@
 /* =========================================================================
    KINGDOM DEFENDERS — ENTIDADES
-   Clases de juego: Enemy, Tower, Projectile.
-   No conocen el DOM ni el HUD: solo estado + update(dt) + draw(ctx).
+   Clases de juego: Enemy, Tower, Projectile. No conocen el DOM ni el HUD,
+   ni cómo se dibujan en 3D (eso vive en render3d.js, que lee su estado
+   x/y/hp/def directamente). Solo estado + update(dt).
+   Los efectos visuales (Particle/FloatingText/LightningEffect) son la
+   excepción: siguen dibujándose en un canvas 2D superpuesto (overlay),
+   por eso conservan su propio draw(ctx, project).
    ========================================================================= */
 
 // ---------------------------------------------------------------------------
@@ -70,77 +74,22 @@ class Enemy {
     }
   }
 
-  draw(ctx, isoProject) {
-    const d = this.def;
-    const p = isoProject(this.x, this.y);
-    const x = p.sx;
-    const y = p.sy;
-    const r = this.radius;
+  // El cuerpo ahora es una malla 3D real (Renderer3D la crea/actualiza leyendo
+  // x/y/hp/def directamente). Acá solo queda la barra de vida, dibujada como
+  // overlay 2D sobre la posición proyectada del enemigo en pantalla.
+  drawHealthBar(ctx, project) {
+    const p = project(this.x, this.y);
+    if (!p || p.visible === false) return;
 
-    // sombra en el suelo (achatada, como corresponde a una vista isométrica)
-    ctx.beginPath();
-    ctx.ellipse(x, y + r * 0.4, r * 0.95, r * 0.4, 0, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(0,0,0,0.3)";
-    ctx.fill();
-
-    // cuerpo con degradé radial (bisel esférico, en vez de color plano)
-    const bodyGrad = ctx.createRadialGradient(x - r * 0.35, y - r * 0.9, r * 0.2, x, y - r * 0.5, r * 1.3);
-    bodyGrad.addColorStop(0, this._lighten(d.bodyColor, 0.35));
-    bodyGrad.addColorStop(0.6, d.bodyColor);
-    bodyGrad.addColorStop(1, d.darkColor);
-    ctx.beginPath();
-    ctx.arc(x, y - r * 0.5, r, 0, Math.PI * 2);
-    ctx.fillStyle = bodyGrad;
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = d.darkColor;
-    ctx.stroke();
-
-    // anillo dorado distintivo para jefes
-    if (d.isBoss) {
-      ctx.beginPath();
-      ctx.arc(x, y - r * 0.5, r + 5, 0, Math.PI * 2);
-      ctx.strokeStyle = "#e0b23a";
-      ctx.lineWidth = 3;
-      ctx.stroke();
-    }
-
-    // tinte azulado si está ralentizado
-    if (this.slowTimer > 0) {
-      ctx.beginPath();
-      ctx.arc(x, y - r * 0.5, r, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(120,180,255,0.35)";
-      ctx.fill();
-    }
-
-    // ojos (le da vida sin necesitar sprites)
-    ctx.fillStyle = "#fff2c2";
-    ctx.beginPath();
-    ctx.arc(x - r * 0.35, y - r * 0.65, r * 0.18, 0, Math.PI * 2);
-    ctx.arc(x + r * 0.35, y - r * 0.65, r * 0.18, 0, Math.PI * 2);
-    ctx.fill();
-
-    // barra de vida
-    const barW = r * 2.2;
+    const barW = 34;
     const barH = 4;
-    const barX = x - barW / 2;
-    const barY = y - r * 1.5 - 10;
+    const barX = p.sx - barW / 2;
+    const barY = p.sy - 8;
     ctx.fillStyle = "rgba(0,0,0,0.5)";
     ctx.fillRect(barX, barY, barW, barH);
     const hpRatio = Math.max(0, this.hp / this.maxHp);
     ctx.fillStyle = hpRatio > 0.5 ? "#6fbf4f" : hpRatio > 0.25 ? "#e0b23a" : "#c0432f";
     ctx.fillRect(barX, barY, barW * hpRatio, barH);
-  }
-
-  // Aclara un color hex "#rrggbb" hacia blanco en la proporción dada (0-1),
-  // para armar degradés de bisel sin necesitar una paleta de colores extra.
-  _lighten(hex, amount) {
-    const n = parseInt(hex.slice(1), 16);
-    const r = (n >> 16) & 255;
-    const g = (n >> 8) & 255;
-    const b = n & 255;
-    const mix = (c) => Math.round(c + (255 - c) * amount);
-    return `rgb(${mix(r)},${mix(g)},${mix(b)})`;
   }
 }
 
@@ -174,8 +123,8 @@ class Particle {
     this.vy *= 0.93;
   }
 
-  draw(ctx, isoProject) {
-    const p = isoProject(this.x, this.y);
+  draw(ctx, project) {
+    const p = project(this.x, this.y);
     const t = Math.max(0, this.life / this.maxLife);
     ctx.globalAlpha = t;
     ctx.beginPath();
@@ -199,15 +148,14 @@ class FloatingText {
 
   update(dt) {
     this.life -= dt;
-    if (this.life <= 0) {
-      this.alive = false;
-      return;
-    }
-    this.y -= 26 * dt;
+    if (this.life <= 0) this.alive = false;
+    // La posición en el mapa (x,y) no cambia: la animación de "subir" ahora
+    // la aplica el renderer (una altura 3D creciente), no un desplazamiento
+    // de coordenadas de mundo.
   }
 
-  draw(ctx, isoProject) {
-    const p = isoProject(this.x, this.y);
+  draw(ctx, project) {
+    const p = project(this.x, this.y);
     const t = Math.max(0, this.life / this.maxLife);
     ctx.globalAlpha = t;
     ctx.fillStyle = this.color;
@@ -233,9 +181,9 @@ class LightningEffect {
     if (this.life <= 0) this.alive = false;
   }
 
-  draw(ctx, isoProject) {
+  draw(ctx, project) {
     if (this.points.length < 2) return;
-    const pts = this.points.map((pt) => isoProject(pt.x, pt.y));
+    const pts = this.points.map((pt) => project(pt.x, pt.y));
     const t = Math.max(0, this.life / this.maxLife);
     ctx.globalAlpha = t;
     ctx.strokeStyle = this.color;
@@ -312,17 +260,8 @@ class Projectile {
     }
   }
 
-  draw(ctx, isoProject) {
-    if (!this.alive) return;
-    const p = isoProject(this.x, this.y);
-    ctx.beginPath();
-    ctx.arc(p.sx, p.sy, 4, 0, Math.PI * 2);
-    ctx.fillStyle = this.color;
-    ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,0.4)";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
+  // Sin draw(): el proyectil ahora es una esfera 3D real que Renderer3D crea
+  // y mueve leyendo x/y/color directamente.
 }
 
 // ---------------------------------------------------------------------------
@@ -431,81 +370,7 @@ class Tower {
     }
   }
 
-  draw(ctx, isoProject, showRange) {
-    const p = isoProject(this.x, this.y);
-    const x = p.sx;
-    const y = p.sy;
-
-    if (showRange) {
-      ctx.beginPath();
-      // La proyección isométrica de un círculo de radio "range" es una elipse
-      // con semiejes range*scale*√2 (se puede derivar de sx=(x-y)*A, sy=(x+y)*B).
-      ctx.ellipse(
-        x,
-        y,
-        this.range * ISO_CONFIG.scaleX * Math.SQRT2,
-        this.range * ISO_CONFIG.scaleY * Math.SQRT2,
-        0,
-        0,
-        Math.PI * 2
-      );
-      ctx.fillStyle = "rgba(255,255,255,0.06)";
-      ctx.fill();
-      ctx.strokeStyle = "rgba(255,255,255,0.35)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-
-    // sombra en el suelo
-    ctx.beginPath();
-    ctx.ellipse(x, y + 4, 20, 9, 0, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(0,0,0,0.3)";
-    ctx.fill();
-
-    // cuerpo con degradé horizontal (cara iluminada / cara en sombra)
-    const bodyGrad = ctx.createLinearGradient(x - 16, 0, x + 16, 0);
-    bodyGrad.addColorStop(0, "#1c130a");
-    bodyGrad.addColorStop(0.35, this.def.color);
-    bodyGrad.addColorStop(1, "#000000aa");
-    ctx.fillStyle = bodyGrad;
-    ctx.fillRect(x - 16, y - 22, 32, 34);
-    ctx.strokeStyle = "#2c1c10";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x - 16, y - 22, 32, 34);
-
-    // techo/torreta con degradé
-    const roofGrad = ctx.createLinearGradient(x - 20, y - 40, x + 20, y - 22);
-    roofGrad.addColorStop(0, this.def.accentColor);
-    roofGrad.addColorStop(1, "#00000066");
-    ctx.beginPath();
-    ctx.moveTo(x - 20, y - 22);
-    ctx.lineTo(x, y - 40);
-    ctx.lineTo(x + 20, y - 22);
-    ctx.closePath();
-    ctx.fillStyle = roofGrad;
-    ctx.fill();
-    ctx.stroke();
-
-    // dirección hacia el objetivo (arma apuntando)
-    if (this.target && this.target.alive) {
-      const t = isoProject(this.target.x, this.target.y);
-      const angle = Math.atan2(t.sy - y, t.sx - x);
-      ctx.strokeStyle = this.def.projectileColor;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(x, y - 6);
-      ctx.lineTo(x + Math.cos(angle) * 22, y - 6 + Math.sin(angle) * 22);
-      ctx.stroke();
-    }
-
-    // pips de nivel
-    const pipsY = y - 46;
-    const pipsStartX = x - ((this.maxLevel - 1) * 7) / 2;
-    for (let i = 0; i < this.maxLevel; i++) {
-      ctx.beginPath();
-      ctx.arc(pipsStartX + i * 7, pipsY, 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = i <= this.levelIndex ? "#e0b23a" : "rgba(255,255,255,0.25)";
-      ctx.fill();
-    }
-  }
+  // Sin draw(): el cuerpo/techo ahora es una malla 3D real (Renderer3D la
+  // crea/escala con el nivel). El indicador de rango es un anillo 3D plano
+  // sobre el suelo (exacto: ya no hace falta aproximar una elipse).
 }

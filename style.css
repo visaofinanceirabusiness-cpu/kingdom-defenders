@@ -157,14 +157,23 @@ button{touch-action:manipulation; -webkit-tap-highlight-color:transparent}
   z-index:15; pointer-events:none;
 }
 
-canvas{
-  display:block;
+/* Dos canvas apilados: gameCanvas (Three.js, WebGL) abajo y overlayCanvas
+   (2D, transparente) encima para barras de vida/texto flotante/rayos. El
+   overlay no recibe clics (pointer-events:none) para que lleguen al de abajo. */
+.canvas-stack{
+  position:relative;
   width:auto; height:auto;
   max-width:100%; max-height:100%;
-  aspect-ratio:960/670; /* proyección isométrica: el canvas ahora es más alto que el mapa lógico */
+  aspect-ratio:960/540;
+}
+.canvas-stack canvas{
+  position:absolute; inset:0;
+  display:block;
+  width:100%; height:100%;
   cursor:crosshair;
 }
-canvas.is-targeting{cursor:cell}
+#overlayCanvas{pointer-events:none}
+#gameCanvas.is-targeting{cursor:cell}
 
 /* En celular en vertical, sugerir horizontal para aprovechar toda la pantalla */
 .rotate-hint{

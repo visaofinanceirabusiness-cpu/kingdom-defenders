@@ -65,26 +65,6 @@ class SoundManager {
 // en cada frame dentro de _updateHUD, que corre a 60fps).
 const TOWER_LIST = Object.values(TOWER_TYPES);
 
-// ---------------------------------------------------------------------------
-// Proyección isométrica: transforma coordenadas de mundo (x,y del mapa,
-// 0-960/0-540) a coordenadas de pantalla (sx,sy) para dibujar, y a la inversa
-// para traducir un clic en pantalla de vuelta a coordenadas de mundo antes de
-// hacer hit-testing. Toda la lógica del juego (movimiento, rango, colisión)
-// sigue trabajando en coordenadas de mundo; esto es puramente presentación.
-// ---------------------------------------------------------------------------
-function isoProject(x, y) {
-  return {
-    sx: (x - y) * ISO_CONFIG.scaleX + ISO_CONFIG.offsetX,
-    sy: (x + y) * ISO_CONFIG.scaleY + ISO_CONFIG.offsetY
-  };
-}
-
-function isoUnproject(sx, sy) {
-  const u = (sx - ISO_CONFIG.offsetX) / ISO_CONFIG.scaleX;
-  const v = (sy - ISO_CONFIG.offsetY) / ISO_CONFIG.scaleY;
-  return { x: (u + v) / 2, y: (v - u) / 2 };
-}
-
 // Compacta un array in-place, removiendo los elementos con alive=false, sin
 // asignar un array nuevo (menos presión sobre el garbage collector que .filter()
 // corriendo cada frame en el loop principal).
@@ -96,64 +76,17 @@ function compactAlive(arr) {
   arr.length = write;
 }
 
-// ---------------------------------------------------------------------------
-// Decoraciones del mapa (árboles, rocas): elementos estáticos, sin update(),
-// que entran en el mismo orden por profundidad que torres/enemigos para que
-// la superposición se vea correcta. (x,y) ya vienen proyectados a pantalla.
-// ---------------------------------------------------------------------------
-function drawTree(ctx, x, y) {
-  ctx.beginPath();
-  ctx.ellipse(x, y + 4, 16, 7, 0, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(0,0,0,0.35)";
-  ctx.fill();
-
-  ctx.fillStyle = "#4a3420";
-  ctx.fillRect(x - 3, y - 18, 6, 20);
-
-  const grad = ctx.createRadialGradient(x - 6, y - 34, 4, x, y - 26, 24);
-  grad.addColorStop(0, "#7ba85a");
-  grad.addColorStop(1, "#2c4a22");
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(x, y - 30, 20, 0, Math.PI * 2);
-  ctx.arc(x - 12, y - 22, 14, 0, Math.PI * 2);
-  ctx.arc(x + 12, y - 24, 14, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawRock(ctx, x, y) {
-  ctx.beginPath();
-  ctx.ellipse(x, y + 3, 15, 6, 0, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(0,0,0,0.3)";
-  ctx.fill();
-
-  const grad = ctx.createLinearGradient(x - 14, y - 18, x + 14, y);
-  grad.addColorStop(0, "#9a9890");
-  grad.addColorStop(1, "#4d4b46");
-  ctx.beginPath();
-  ctx.moveTo(x - 14, y);
-  ctx.lineTo(x - 9, y - 18);
-  ctx.lineTo(x + 5, y - 15);
-  ctx.lineTo(x + 15, y - 3);
-  ctx.lineTo(x + 10, y + 3);
-  ctx.closePath();
-  ctx.fillStyle = grad;
-  ctx.fill();
-  ctx.strokeStyle = "#2b2a27";
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-}
-
 class Game {
-  constructor(canvas, hud, mapId, sound) {
+  constructor(canvas, hud, mapId, sound, renderer3d) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext("2d");
     this.hud = hud; // referencias a elementos del HUD (ver index.html)
     this.sound = sound || new SoundManager();
+    this.renderer3d = renderer3d; // motor de render 3D (Three.js), ver render3d.js
     this._loop = this._loop.bind(this); // bindeado una sola vez, no en cada requestAnimationFrame
 
     this.mapId = mapId && MAPS[mapId] ? mapId : DEFAULT_MAP_ID;
     this.map = MAPS[this.mapId];
+    this.renderer3d.setMap(this.map);
     this.castleHp = CASTLE_CONFIG.maxHp;
     this.castleMaxHp = CASTLE_CONFIG.maxHp;
     this.gold = ECONOMY_CONFIG.startingGold;
@@ -248,13 +181,10 @@ class Game {
   // -----------------------------------------------------------------------
   _bindInput() {
     this.canvas.addEventListener("click", (e) => {
-      const rect = this.canvas.getBoundingClientRect();
-      const scaleX = this.canvas.width / rect.width;
-      const scaleY = this.canvas.height / rect.height;
-      const sx = (e.clientX - rect.left) * scaleX;
-      const sy = (e.clientY - rect.top) * scaleY;
-      const { x, y } = isoUnproject(sx, sy);
-      this._handleClick(x, y);
+      // Raycast contra el plano del suelo: exacto (no una aproximación como
+      // la proyección isométrica anterior), Three.js resuelve la geometría.
+      const world = this.renderer3d.screenToWorld(e.clientX, e.clientY);
+      if (world) this._handleClick(world.x, world.y);
     });
   }
 
@@ -581,7 +511,8 @@ class Game {
     this.lastTime = now;
 
     this._update(dt);
-    this._render();
+    this.renderer3d.sync(this);
+    this.renderer3d.render();
 
     requestAnimationFrame(this._loop);
   }
@@ -813,209 +744,4 @@ class Game {
     this._saveRunState();
   }
 
-  // -----------------------------------------------------------------------
-  // Render (proyección isométrica)
-  // -----------------------------------------------------------------------
-  _render() {
-    const ctx = this.ctx;
-    ctx.clearRect(0, 0, ISO_CONFIG.canvasWidth, ISO_CONFIG.canvasHeight);
-
-    this._drawTerrain(ctx);
-    this._drawPath(ctx);
-    this._drawBuildSpots(ctx);
-
-    // Orden por profundidad (pintor): todo lo que está "más atrás" en el
-    // mundo (x+y menor) se dibuja primero, para que lo de adelante lo tape
-    // correctamente. El castillo entra en el mismo orden que torres/enemigos.
-    const drawables = [{ depth: this.map.castle.x + this.map.castle.y, draw: () => this._drawCastle(ctx) }];
-    const drawDecoration = this.map.decorationType === "rock" ? drawRock : drawTree;
-    for (const deco of this.map.decorations || []) {
-      const p = isoProject(deco.x, deco.y);
-      drawables.push({ depth: deco.x + deco.y, draw: () => drawDecoration(ctx, p.sx, p.sy) });
-    }
-    for (const tower of this.towers) {
-      drawables.push({ depth: tower.x + tower.y, draw: () => tower.draw(ctx, isoProject, tower === this.selectedTower) });
-    }
-    for (const enemy of this.enemies) {
-      drawables.push({ depth: enemy.x + enemy.y, draw: () => enemy.draw(ctx, isoProject) });
-    }
-    for (const proj of this.projectiles) {
-      drawables.push({ depth: proj.x + proj.y, draw: () => proj.draw(ctx, isoProject) });
-    }
-    drawables.sort((a, b) => a.depth - b.depth);
-    for (const d of drawables) d.draw();
-
-    for (const e of this.effects) e.draw(ctx, isoProject);
-
-    if (this.castleFlashTimer > 0) {
-      ctx.fillStyle = `rgba(163,40,60,${(this.castleFlashTimer / GAME_CONFIG.castleFlashDuration) * 0.35})`;
-      ctx.fillRect(0, 0, ISO_CONFIG.canvasWidth, ISO_CONFIG.canvasHeight);
-    }
-  }
-
-  _drawTerrain(ctx) {
-    const { width, height, terrainColors } = this.map;
-    // A=atrás, B=derecha, C=adelante (el punto más "bajo" en pantalla), D=izquierda.
-    const A = isoProject(0, 0);
-    const B = isoProject(width, 0);
-    const C = isoProject(width, height);
-    const D = isoProject(0, height);
-    const wallHeight = 42;
-
-    // Paredes laterales: le dan grosor a la plataforma (si no, el mapa se ve
-    // como una foto plana pegada en el aire, sin apoyo). Se dibujan primero,
-    // por debajo de los dos bordes "delanteros" (D-C e C-B) del rombo.
-    const drawWall = (p1, p2, colorTop, colorBottom) => {
-      const grad = ctx.createLinearGradient(0, p1.sy, 0, p1.sy + wallHeight);
-      grad.addColorStop(0, colorTop);
-      grad.addColorStop(1, colorBottom);
-      ctx.beginPath();
-      ctx.moveTo(p1.sx, p1.sy);
-      ctx.lineTo(p2.sx, p2.sy);
-      ctx.lineTo(p2.sx, p2.sy + wallHeight);
-      ctx.lineTo(p1.sx, p1.sy + wallHeight);
-      ctx.closePath();
-      ctx.fillStyle = grad;
-      ctx.fill();
-    };
-    drawWall(D, C, "#1c1712", "#0c0a08"); // cara izquierda: menos luz
-    drawWall(C, B, "#2a2018", "#14100c"); // cara derecha: un poco más iluminada
-
-    // Cara superior (el piso jugable)
-    const grad = ctx.createLinearGradient(0, A.sy, 0, C.sy);
-    grad.addColorStop(0, terrainColors.top);
-    grad.addColorStop(1, terrainColors.bottom);
-    ctx.beginPath();
-    ctx.moveTo(A.sx, A.sy);
-    ctx.lineTo(B.sx, B.sy);
-    ctx.lineTo(C.sx, C.sy);
-    ctx.lineTo(D.sx, D.sy);
-    ctx.closePath();
-    ctx.fillStyle = grad;
-    ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,0.35)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    this._drawGroundTiles(ctx, width, height);
-  }
-
-  // Piso a cuadros (tipo tablero isométrico) en vez de manchas difusas: cada
-  // celda es un rombo proyectado, alternando dos tonos para sugerir textura
-  // real (pasto/piedra) en vez de un color liso.
-  _drawGroundTiles(ctx, width, height) {
-    const tile = 60;
-    ctx.save();
-    const A = isoProject(0, 0);
-    const B = isoProject(width, 0);
-    const C = isoProject(width, height);
-    const D = isoProject(0, height);
-    ctx.beginPath();
-    ctx.moveTo(A.sx, A.sy);
-    ctx.lineTo(B.sx, B.sy);
-    ctx.lineTo(C.sx, C.sy);
-    ctx.lineTo(D.sx, D.sy);
-    ctx.closePath();
-    ctx.clip(); // recorta para que las celdas no se salgan del rombo del piso
-
-    for (let wy = 0; wy < height; wy += tile) {
-      for (let wx = 0; wx < width; wx += tile) {
-        const dark = ((wx / tile + wy / tile) & 1) === 0;
-        const p0 = isoProject(wx, wy);
-        const p1 = isoProject(wx + tile, wy);
-        const p2 = isoProject(wx + tile, wy + tile);
-        const p3 = isoProject(wx, wy + tile);
-        ctx.beginPath();
-        ctx.moveTo(p0.sx, p0.sy);
-        ctx.lineTo(p1.sx, p1.sy);
-        ctx.lineTo(p2.sx, p2.sy);
-        ctx.lineTo(p3.sx, p3.sy);
-        ctx.closePath();
-        ctx.fillStyle = dark ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.05)";
-        ctx.fill();
-      }
-    }
-    ctx.restore();
-  }
-
-  _drawPath(ctx) {
-    const { path, pathWidth } = this.map;
-    const pts = path.map((p) => isoProject(p.x, p.y));
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-
-    ctx.strokeStyle = "#6b5334";
-    ctx.lineWidth = pathWidth * ISO_CONFIG.scaleY * 2;
-    ctx.beginPath();
-    ctx.moveTo(pts[0].sx, pts[0].sy);
-    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].sx, pts[i].sy);
-    ctx.stroke();
-
-    ctx.strokeStyle = "#a9835a";
-    ctx.lineWidth = (pathWidth - 10) * ISO_CONFIG.scaleY * 2;
-    ctx.beginPath();
-    ctx.moveTo(pts[0].sx, pts[0].sy);
-    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].sx, pts[i].sy);
-    ctx.stroke();
-  }
-
-  _drawBuildSpots(ctx) {
-    for (const spot of this.map.buildSpots) {
-      const key = `${spot.x},${spot.y}`;
-      if (this.spotTowers.has(key)) continue;
-      const p = isoProject(spot.x, spot.y);
-      ctx.beginPath();
-      ctx.ellipse(p.sx, p.sy, 26, 13, 0, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255, 230, 150, 0.18)";
-      ctx.fill();
-      ctx.setLineDash([5, 4]);
-      ctx.strokeStyle = "rgba(255, 230, 150, 0.7)";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-  }
-
-  _drawCastle(ctx) {
-    const p = isoProject(this.map.castle.x, this.map.castle.y);
-    const x = p.sx;
-    const y = p.sy;
-
-    // sombra en el suelo
-    ctx.beginPath();
-    ctx.ellipse(x, y + 6, 46, 18, 0, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
-    ctx.fill();
-
-    // muro con degradé (bisel) para sensación de volumen
-    const wallGrad = ctx.createLinearGradient(x - 34, 0, x + 34, 0);
-    wallGrad.addColorStop(0, "#4d4b45");
-    wallGrad.addColorStop(0.45, "#8a877d");
-    wallGrad.addColorStop(1, "#6b6963");
-    ctx.fillStyle = wallGrad;
-    ctx.fillRect(x - 34, y - 50, 68, 100);
-    ctx.strokeStyle = "#2b2a27";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(x - 34, y - 50, 68, 100);
-
-    // almenas
-    ctx.fillStyle = "#7c7a70";
-    for (let i = -1; i <= 1; i++) {
-      ctx.fillRect(x - 34 + (i + 1) * 22 - 8, y - 62, 16, 14);
-    }
-
-    // bandera
-    ctx.strokeStyle = "#3a3833";
-    ctx.beginPath();
-    ctx.moveTo(x, y - 62);
-    ctx.lineTo(x, y - 90);
-    ctx.stroke();
-    ctx.fillStyle = "#a3283c";
-    ctx.beginPath();
-    ctx.moveTo(x, y - 90);
-    ctx.lineTo(x + 24, y - 82);
-    ctx.lineTo(x, y - 74);
-    ctx.closePath();
-    ctx.fill();
-  }
 }
