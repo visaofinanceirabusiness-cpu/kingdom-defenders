@@ -712,7 +712,10 @@ class Game {
     if (h.countdown) {
       h.countdown.textContent = this.state === "countdown" ? Math.ceil(this.countdown) : "";
     }
-    if (h.playerLevel) h.playerLevel.textContent = `Nivel ${this.playerLevel}`;
+    if (h.playerLevel) {
+      h.playerLevel.textContent =
+        this.playerLevel >= PLAYER_CONFIG.maxLevel ? `Nivel ${this.playerLevel} (MÁX)` : `Nivel ${this.playerLevel}`;
+    }
     if (h.xpBar) {
       const pct =
         this.playerLevel >= PLAYER_CONFIG.maxLevel ? 100 : Math.min(100, (this.playerXp / this._xpToNextLevel()) * 100);

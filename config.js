@@ -129,7 +129,7 @@ const ECONOMY_CONFIG = {
 const PLAYER_CONFIG = {
   baseXp: 15,
   xpGrowth: 1.4,
-  maxLevel: 8
+  maxLevel: 10
 };
 
 const SAVE_CONFIG = {
