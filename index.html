@@ -27,6 +27,9 @@
       Construí torres en los círculos punteados · tocá una torre para mejorarla o venderla ·
       subí de nivel derrotando enemigos para desbloquear torres y habilidades
     </p>
+    <p class="map-select__error hidden" id="loadError">
+      No se pudo cargar el motor 3D (Three.js) desde internet. Revisá tu conexión y recargá la página.
+    </p>
   </div>
 
   <div class="hud-top">
@@ -93,6 +96,11 @@
   const canvasStack = document.getElementById("canvasStack");
   const canvas = document.getElementById("gameCanvas");
   const overlayCanvas = document.getElementById("overlayCanvas");
+
+  if (typeof THREE === "undefined") {
+    document.getElementById("loadError").classList.remove("hidden");
+    throw new Error("Three.js no cargó (CDN inaccesible).");
+  }
   const renderer3d = new Renderer3D(canvas, overlayCanvas);
 
   function fitCanvases() {

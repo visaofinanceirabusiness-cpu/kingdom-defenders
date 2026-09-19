@@ -162,9 +162,13 @@ button{touch-action:manipulation; -webkit-tap-highlight-color:transparent}
    overlay no recibe clics (pointer-events:none) para que lleguen al de abajo. */
 .canvas-stack{
   position:relative;
-  width:auto; height:auto;
-  max-width:100%; max-height:100%;
-  aspect-ratio:960/540;
+  /* Los <canvas> de adentro van con position:absolute, así que no le dan
+     tamaño propio a este div (a diferencia de un <canvas> suelto, que sí
+     tiene tamaño intrínseco). Por eso el tamaño se calcula con unidades de
+     viewport en vez de aspect-ratio + max-width/max-height, que sin una
+     base de contenido colapsan a 0x0 y dejan la pantalla en negro. */
+  width:min(100vw, calc(100dvh * 960 / 540));
+  height:min(100dvh, calc(100vw * 540 / 960));
 }
 .canvas-stack canvas{
   position:absolute; inset:0;
@@ -196,6 +200,7 @@ button{touch-action:manipulation; -webkit-tap-highlight-color:transparent}
 .map-select h1{font-size:32px; margin:0; color:var(--gold)}
 .map-select__hint{margin:0; opacity:.85; font-size:14px}
 .map-select__grid{display:flex; gap:16px; flex-wrap:wrap; justify-content:center}
+.map-select__error{margin:0; max-width:420px; font-size:13px; color:#f0b3bd; background:rgba(163,40,60,.15); border:1px solid var(--blood); border-radius:8px; padding:10px 14px}
 .map-select__howto{margin:8px 0 0; max-width:520px; font-size:12px; opacity:.65; line-height:1.6}
 .map-card{
   font-family:inherit;
