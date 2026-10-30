@@ -444,6 +444,34 @@ falta un "← Volver" para retroceder, hasta el primer paso (índice 0).
   Funciona igual para pasos de texto y de juego (la GameRenderer se
   vuelve a montar al volver a visitarla, sin reenviar resultado).
 
+## Ancho completo en PC — hecho
+Pedido explícito: que la clase (alumno y docente) ocupe toda la
+pantalla en PC, no una columna angosta centrada — antes todo el sitio
+usaba `max-w-2xl`/`max-w-3xl` (muy angosto en monitores grandes).
+
+- `src/app/docente/layout.tsx` (envuelve TODO el panel del docente:
+  dashboard, biblioteca, alumnos, cursos, editor, sesión en vivo):
+  `max-w-6xl` → `max-w-[1600px]` — valor elegido a mano (no es un
+  breakpoint estándar de Tailwind) para que se vea notoriamente más
+  ancho en PC sin llegar a ser 100% edge-to-edge (eso hubiera hecho
+  falta revisar cada pantalla del dashboard, como las tablas de
+  alumnos, para que no quedaran espaciadas de forma rara).
+- `/docente/clases/[id]/editor` y `/docente/sesion/[sessionId]`: su
+  `<div>` contenedor interno (que antes volvía a angostar todo a dos
+  o tres columnas chicas DENTRO del layout ya angosto) pasa a
+  `lg:max-w-none` — así aprovecha todo el ancho que le da el layout
+  de arriba. Se mantiene angosto en mobile (`max-w-2xl`/`max-w-3xl`
+  sin el `lg:`), el `lg:` es el breakpoint de 1024px+.
+- `/clase/sesion/[sessionId]` (alumno, sin layout propio por encima,
+  usa el `layout.tsx` raíz sin ancho): mismo criterio,
+  `max-w-2xl lg:max-w-none`, más `px-4 lg:px-12` en el `<main>` para
+  que no quede pegado a los bordes en pantallas grandes.
+- Ningún cambio en el contenido en sí (`ClasePlayer`, `Card`, etc.)
+  — las líneas de texto largas quedan más anchas que antes en
+  pantallas grandes; si se ve mal la lectura, la solución sería
+  limitar el ancho solo de los párrafos de texto (no de toda la
+  pantalla), pendiente si el usuario lo pide.
+
 ## Estado del proyecto (ver spec completo en el primer prompt del usuario)
 
 **Fase 1 — hecha:**

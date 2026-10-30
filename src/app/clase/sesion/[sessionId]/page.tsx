@@ -43,10 +43,10 @@ export default async function SesionPage({ params }: { params: Promise<{ session
 
   return (
     <main
-      className="min-h-screen px-4 py-10"
+      className="min-h-screen px-4 py-10 lg:px-12"
       style={{ background: 'var(--fondo-app, linear-gradient(135deg, #ede9fe 0%, #fdf4ff 50%, #eff6ff 100%))' }}
     >
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-2xl lg:max-w-none">
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-xl font-black text-foreground">{lesson?.title}</h1>
           {student && <span className="text-sm font-semibold text-foreground/60">👤 {student.display_name}</span>}

@@ -21,7 +21,7 @@ export default async function DocenteLayout({ children }: { children: React.Reac
   return (
     <div className="min-h-screen bg-surface-muted">
       <DocenteNav teacherName={profile?.full_name ?? 'Docente'} />
-      <div className="mx-auto max-w-6xl px-6 py-8">{children}</div>
+      <div className="mx-auto max-w-[1600px] px-6 py-8">{children}</div>
     </div>
   );
 }

@@ -40,7 +40,7 @@ export default async function SesionEnVivoDocentePage({ params }: { params: Prom
   ]);
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl lg:max-w-none">
       <Link href={`/docente/clases/${lesson.id}/resultados`} className="text-sm font-semibold text-brand-600 hover:underline">
         ← Volver a resultados
       </Link>

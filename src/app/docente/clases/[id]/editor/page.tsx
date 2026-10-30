@@ -80,7 +80,7 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
   const publicada = lesson.status === 'published';
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-3xl lg:max-w-none">
       <Link
         href={esManual ? `/docente/biblioteca` : `/docente/clases/${lessonId}/analisis`}
         className="text-sm font-semibold text-brand-600 hover:underline"
