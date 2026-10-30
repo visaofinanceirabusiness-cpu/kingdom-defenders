@@ -240,14 +240,17 @@ evaluación y actividades siguen siendo únicas, como antes.
   **Ojo: la fuente estándar de PDF (Helvetica) no tiene glifos de
   emoji** — a diferencia del resto de la UI, este documento no usa
   ningún emoji en el texto (se probó y salían como cuadrados vacíos).
-- Imágenes: el `<Image src={url}>` de `@react-pdf/renderer` descarga
-  la imagen de su URL pública (bucket `lesson-images`) al generar el
-  PDF — van la de introducción, la de cada tema, y la de cada
-  pregunta/afirmación/consigna que la tenga (Trivia/V-F/Completar).
-  Probado con PNG/JPEG; WEBP y GIF (también aceptados al subir la
-  imagen) no están 100% garantizados por el decodificador de esta
-  librería — si algún día falla un PDF por una imagen, ese es el
-  primer sospechoso.
+- Imágenes: **nunca se le pasa una URL remota directo al `<Image>`**
+  de `@react-pdf/renderer` — dejarlo descargarlas solo durante el
+  layout daba texto superpuesto e imágenes que no llegaban a tiempo
+  (bug real encontrado por el usuario). `lib/pdf/imagenes.ts`
+  (`resolverImagenes`) baja todas las imágenes de la clase en
+  paralelo ANTES de renderizar y las convierte a data URI — el
+  componente (`ClasePdf`) recibe un mapa `url original -> data URI` y
+  solo dibuja la imagen si está resuelta (si falla la descarga, se
+  omite esa imagen en vez de romper el PDF entero). Probado con
+  PNG/JPEG; WEBP y GIF (también aceptados al subir) no están 100%
+  garantizados por el decodificador de esta librería.
 - `api/clases/[id]/pdf/route.tsx` (con JSX, por eso `.tsx` y no
   `.ts`): arma el PDF y lo devuelve con `Content-Disposition:
   attachment` para que descargue directo, sin pasar por ningún visor.

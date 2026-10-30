@@ -36,15 +36,24 @@ export function ClasePdf({
   lesson,
   secciones,
   actividades,
+  imagenes,
 }: {
   lesson: { title: string; subject: string | null; topic: string | null; school_year: string | null };
   secciones: Seccion[];
   actividades: Actividad[];
+  imagenes: Record<string, string>;
 }) {
   const ordenadas = [...secciones].sort((a, b) => a.position - b.position);
   const introduccion = ordenadas.find((s) => s.section_type === 'introduction');
   const temas = ordenadas.filter((s) => s.section_type === 'tema');
   const evaluacion = ordenadas.find((s) => s.section_type === 'evaluation');
+
+  // Solo se renderiza si ya se descargó y convirtió a data URI de
+  // antemano (ver lib/pdf/imagenes.ts) — nunca se le pasa una URL
+  // remota directo al <Image>, así el layout del PDF es síncrono.
+  function resuelta(url: string | undefined): string | undefined {
+    return url ? imagenes[url] : undefined;
+  }
 
   return (
     <Document>
@@ -57,10 +66,11 @@ export function ClasePdf({
         {introduccion &&
           (() => {
             const contenido = introduccion.content as { text?: string; image_url?: string } | null;
+            const img = resuelta(contenido?.image_url);
             return (
               <View>
                 <Text style={styles.sectionTitle}>Introducción</Text>
-                {contenido?.image_url && <Image src={contenido.image_url} style={styles.image} />}
+                {img && <Image src={img} style={styles.image} />}
                 <Text style={styles.paragraph}>{contenido?.text ?? ''}</Text>
               </View>
             );
@@ -71,10 +81,11 @@ export function ClasePdf({
             <Text style={styles.sectionTitle}>Temas</Text>
             {temas.map((tema, i) => {
               const contenido = tema.content as { theory?: string; examples?: string; image_url?: string } | null;
+              const img = resuelta(contenido?.image_url);
               return (
-                <View key={i} wrap={false}>
+                <View key={i}>
                   <Text style={styles.temaTitle}>{tema.title}</Text>
-                  {contenido?.image_url && <Image src={contenido.image_url} style={styles.image} />}
+                  {img && <Image src={img} style={styles.image} />}
                   <Text style={styles.label}>TEORÍA</Text>
                   <Text style={styles.paragraph}>{contenido?.theory ?? ''}</Text>
                   <Text style={styles.label}>EJEMPLOS</Text>
@@ -96,7 +107,7 @@ export function ClasePdf({
           <View>
             <Text style={styles.sectionTitle}>Actividades</Text>
             {actividades.map((actividad, i) => (
-              <ActividadImpresa key={i} actividad={actividad} />
+              <ActividadImpresa key={i} actividad={actividad} resuelta={resuelta} />
             ))}
           </View>
         )}
@@ -107,7 +118,7 @@ export function ClasePdf({
   );
 }
 
-function ActividadImpresa({ actividad }: { actividad: Actividad }) {
+function ActividadImpresa({ actividad, resuelta }: { actividad: Actividad; resuelta: (url: string | undefined) => string | undefined }) {
   const definicion = isValidGameType(actividad.game_template_id) ? GAME_DEFINITIONS[actividad.game_template_id] : null;
   const label = definicion?.label ?? actividad.game_template_id;
 
@@ -120,12 +131,14 @@ function ActividadImpresa({ actividad }: { actividad: Actividad }) {
         <Text style={styles.activityTitle}>
           {label} — {actividad.title}
         </Text>
-        {(config.questions ?? []).map((q, i) => (
+        {(config.questions ?? []).map((q, i) => {
+          const img = resuelta(q.image_url);
+          return (
           <View key={i}>
             <Text style={styles.question}>
               {i + 1}. {q.question}
             </Text>
-            {q.image_url && <Image src={q.image_url} style={styles.imageSmall} />}
+            {img && <Image src={img} style={styles.imageSmall} />}
             {q.options.map((o, j) => (
               <Text key={j} style={styles.option}>
                 {o === q.correct_answer ? '[correcta] ' : '- '}
@@ -133,7 +146,8 @@ function ActividadImpresa({ actividad }: { actividad: Actividad }) {
               </Text>
             ))}
           </View>
-        ))}
+          );
+        })}
       </View>
     );
   }
@@ -145,14 +159,17 @@ function ActividadImpresa({ actividad }: { actividad: Actividad }) {
         <Text style={styles.activityTitle}>
           {label} — {actividad.title}
         </Text>
-        {(config.statements ?? []).map((s, i) => (
-          <View key={i}>
-            <Text style={styles.question}>
-              {i + 1}. {s.statement} — <Text style={styles.correct}>{s.is_true ? 'Verdadero' : 'Falso'}</Text>
-            </Text>
-            {s.image_url && <Image src={s.image_url} style={styles.imageSmall} />}
-          </View>
-        ))}
+        {(config.statements ?? []).map((s, i) => {
+          const img = resuelta(s.image_url);
+          return (
+            <View key={i}>
+              <Text style={styles.question}>
+                {i + 1}. {s.statement} — <Text style={styles.correct}>{s.is_true ? 'Verdadero' : 'Falso'}</Text>
+              </Text>
+              {img && <Image src={img} style={styles.imageSmall} />}
+            </View>
+          );
+        })}
       </View>
     );
   }
@@ -164,14 +181,17 @@ function ActividadImpresa({ actividad }: { actividad: Actividad }) {
         <Text style={styles.activityTitle}>
           {label} — {actividad.title}
         </Text>
-        {(config.items ?? []).map((it, i) => (
-          <View key={i}>
-            <Text style={styles.question}>
-              {i + 1}. {it.text_with_blank.replace('___', `[${it.correct_answer}]`)}
-            </Text>
-            {it.image_url && <Image src={it.image_url} style={styles.imageSmall} />}
-          </View>
-        ))}
+        {(config.items ?? []).map((it, i) => {
+          const img = resuelta(it.image_url);
+          return (
+            <View key={i}>
+              <Text style={styles.question}>
+                {i + 1}. {it.text_with_blank.replace('___', `[${it.correct_answer}]`)}
+              </Text>
+              {img && <Image src={img} style={styles.imageSmall} />}
+            </View>
+          );
+        })}
       </View>
     );
   }
