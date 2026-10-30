@@ -10,6 +10,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
+import { colorPorNombre } from '@/lib/color-por-nombre';
+
+type CursorRemoto = { x: number; y: number; nombre: string; color: string; ts: number };
 
 type Punto = { x: number; y: number };
 type ElementoBase = { id: string; color: string };
@@ -139,16 +142,19 @@ function dibujarElemento(ctx: CanvasRenderingContext2D, el: Elemento, w: number,
   }
 }
 
-export function PizarraFlotante({ roomId }: { roomId: string }) {
+export function PizarraFlotante({ roomId, nombre = 'Alguien' }: { roomId: string; nombre?: string }) {
   const [abierta, setAbierta] = useState(false);
   const [herramienta, setHerramienta] = useState<Herramienta>('lapiz');
   const [color, setColor] = useState(COLORES[0]);
   const [fondo, setFondo] = useState<Fondo>('blanco');
   const [elementos, setElementos] = useState<Elemento[]>([]);
+  const [cursoresRemotos, setCursoresRemotos] = useState<Record<string, CursorRemoto>>({});
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contenedorRef = useRef<HTMLDivElement>(null);
   const supabase = useMemo(() => createClient(), []);
   const canalRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const peerIdRef = useRef(crypto.randomUUID());
+  const ultimoEnvioCursorRef = useRef(0);
 
   const dibujandoRef = useRef(false);
   const trazoActualRef = useRef<Trazo | null>(null);
@@ -207,13 +213,31 @@ export function PizarraFlotante({ roomId }: { roomId: string }) {
       .on('broadcast', { event: 'pedir-estado' }, () => {
         canal.send({ type: 'broadcast', event: 'estado', payload: { elementos, fondo } });
       })
+      .on('broadcast', { event: 'cursor' }, ({ payload }) => {
+        setCursoresRemotos((prev) => ({ ...prev, [payload.peerId]: { x: payload.x, y: payload.y, nombre: payload.nombre, color: payload.color, ts: Date.now() } }));
+      })
+      .on('broadcast', { event: 'cursor-fuera' }, ({ payload }) => {
+        setCursoresRemotos((prev) => Object.fromEntries(Object.entries(prev).filter(([peerId]) => peerId !== payload.peerId)));
+      })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           canal.send({ type: 'broadcast', event: 'pedir-estado', payload: {} });
         }
       });
 
+    // Cursores ajenos que no mandaron nada en más de 3s (se les cerró
+    // la pestaña sin que llegáramos a recibir el "cursor-fuera") se
+    // dan de baja solos, para no dejar un puntero fantasma clavado.
+    const limpieza = setInterval(() => {
+      setCursoresRemotos((prev) => {
+        const ahora = Date.now();
+        const vivos = Object.fromEntries(Object.entries(prev).filter(([, c]) => ahora - c.ts < 3000));
+        return Object.keys(vivos).length === Object.keys(prev).length ? prev : vivos;
+      });
+    }, 1000);
+
     return () => {
+      clearInterval(limpieza);
       supabase.removeChannel(canal);
       canalRef.current = null;
     };
@@ -273,6 +297,16 @@ export function PizarraFlotante({ roomId }: { roomId: string }) {
   function manejarPointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
     const p = puntoDesdeEvento(e);
 
+    const ahora = Date.now();
+    if (ahora - ultimoEnvioCursorRef.current > 50) {
+      ultimoEnvioCursorRef.current = ahora;
+      canalRef.current?.send({
+        type: 'broadcast',
+        event: 'cursor',
+        payload: { peerId: peerIdRef.current, x: p.x, y: p.y, nombre, color: colorPorNombre(nombre) },
+      });
+    }
+
     if (herramienta === 'angulo' && anguloPasoRef.current > 0) {
       if (anguloPasoRef.current === 1) {
         previewRef.current = { id: 'preview', tipo: 'linea', color, a: anguloVerticeRef.current!, b: p };
@@ -292,6 +326,11 @@ export function PizarraFlotante({ roomId }: { roomId: string }) {
       previewRef.current = { id: 'preview', tipo: herramienta, color, a: inicioFormaRef.current, b: p };
     }
     redibujar();
+  }
+
+  function manejarCursorFuera() {
+    canalRef.current?.send({ type: 'broadcast', event: 'cursor-fuera', payload: { peerId: peerIdRef.current } });
+    manejarPointerUp();
   }
 
   function manejarPointerUp() {
@@ -406,15 +445,32 @@ export function PizarraFlotante({ roomId }: { roomId: string }) {
         </button>
       </div>
 
-      <div ref={contenedorRef} className="h-[min(60vh,440px)] w-full touch-none" style={fondoStyle[fondo]}>
+      <div ref={contenedorRef} className="relative h-[min(60vh,440px)] w-full touch-none" style={fondoStyle[fondo]}>
         <canvas
           ref={canvasRef}
           className="h-full w-full cursor-crosshair"
           onPointerDown={manejarPointerDown}
           onPointerMove={manejarPointerMove}
           onPointerUp={manejarPointerUp}
-          onPointerLeave={manejarPointerUp}
+          onPointerLeave={manejarCursorFuera}
         />
+        {Object.entries(cursoresRemotos).map(([peerId, c]) => (
+          <div
+            key={peerId}
+            className="pointer-events-none absolute z-10 -translate-x-1 -translate-y-1"
+            style={{ left: `${c.x * 100}%`, top: `${c.y * 100}%` }}
+          >
+            <span className="block text-lg leading-none" style={{ color: c.color }}>
+              🖱️
+            </span>
+            <span
+              className="ml-3 -mt-1 inline-block whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10px] font-bold text-white"
+              style={{ backgroundColor: c.color }}
+            >
+              {c.nombre}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );

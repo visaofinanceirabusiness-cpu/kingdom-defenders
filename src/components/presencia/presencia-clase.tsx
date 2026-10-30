@@ -9,17 +9,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
+import { colorPorNombre } from '@/lib/color-por-nombre';
 
 type Persona = { nombre: string; rol: 'docente' | 'alumno' };
 type Conectado = Persona & { key: string };
-
-const COLORES = ['#dc2626', '#2563eb', '#16a34a', '#d97706', '#7c3aed', '#db2777'];
-
-function colorPara(nombre: string): string {
-  let hash = 0;
-  for (const c of nombre) hash = (hash * 31 + c.charCodeAt(0)) % COLORES.length;
-  return COLORES[hash];
-}
 
 export function PresenciaClase({ roomId, nombre, rol }: { roomId: string; nombre: string; rol: 'docente' | 'alumno' }) {
   const [conectados, setConectados] = useState<Conectado[]>([]);
@@ -60,7 +53,7 @@ export function PresenciaClase({ roomId, nombre, rol }: { roomId: string; nombre
           className={cn(
             'flex items-center gap-1 rounded-full py-1 pl-1 pr-2.5 text-xs font-semibold text-white'
           )}
-          style={{ backgroundColor: colorPara(p.nombre) }}
+          style={{ backgroundColor: colorPorNombre(p.nombre) }}
         >
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/25 text-xs">
             {p.rol === 'docente' ? '🧑‍🏫' : '🧑‍🎓'}

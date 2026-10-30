@@ -280,6 +280,41 @@ expone datos de red de nadie).
   `/docente/clases/[id]/editor` y `/docente/sesion/[sessionId]`
   (docente, las dos pantallas donde ya está la pizarra).
 
+## Cursores en vivo en la pizarra — hecho
+Pedido explícito: ver el puntero de la profe y del alumno moviéndose
+en vivo sobre la pizarra, no solo el dibujo final.
+
+- Extiende el mismo canal de broadcast de la pizarra
+  (`pizarra:<roomId>`, ver sección de arriba) con dos eventos nuevos:
+  `cursor` (posición normalizada 0–1, igual que los puntos del
+  dibujo) y `cursor-fuera` (cuando el mouse sale del canvas). No usa
+  Presence para esto — Presence ya está ocupado por
+  `PresenciaClase` en su propio canal, y acá alcanza con broadcast
+  porque no hace falta saber "quién está", solo "dónde tiene el
+  mouse el que ya sabemos que está".
+- `manejarPointerMove` manda la posición propia solo cada ~50ms
+  (`ultimoEnvioCursorRef`) para no saturar el canal moviendo el mouse
+  pixel a pixel.
+- Cada cliente tiene un `peerId` propio (`crypto.randomUUID()`, fijo
+  mientras el componente esté montado) para poder tener varios
+  cursores remotos distintos en el mapa `cursoresRemotos` sin
+  mezclarlos.
+- Como broadcast no tiene "leave" automático (a diferencia de
+  Presence), el cursor remoto se da de baja de dos formas: evento
+  explícito `cursor-fuera` al salir del canvas (`onPointerLeave`), Y
+  un `setInterval` de limpieza cada 1s que descarta cualquier cursor
+  sin novedades hace más de 3s — por si se cerró la pestaña de golpe
+  y el evento de salida nunca llegó.
+- Mismo color por nombre que los chips de "quién está conectado"
+  (`colorPorNombre`, extraído a `src/lib/color-por-nombre.ts` para
+  compartirlo entre los dos — antes vivía duplicado dentro de
+  `presencia-clase.tsx`).
+- `PizarraFlotante` recibe un prop `nombre` nuevo (con default
+  `'Alguien'` por si se usa sin pasarlo) — los 3 lugares donde se
+  monta ya le pasan `student.display_name` o
+  `perfil?.full_name ?? 'Docente'`, los mismos valores que ya se le
+  pasaban a `PresenciaClase`.
+
 ## Estado del proyecto (ver spec completo en el primer prompt del usuario)
 
 **Fase 1 — hecha:**
