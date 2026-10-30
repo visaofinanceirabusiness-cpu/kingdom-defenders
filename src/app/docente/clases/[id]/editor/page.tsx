@@ -62,7 +62,7 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
             {esManual ? '→ Ir a construirla' : '← Ir al análisis'}
           </Link>
         </Card>
-        <PizarraFlotante roomId={lessonId} nombre={perfil?.full_name ?? 'Docente'} />
+        <PizarraFlotante roomId={lessonId} nombre={perfil?.full_name ?? 'Docente'} rol="docente" />
       </div>
     );
   }
@@ -244,7 +244,7 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
         </div>
       )}
 
-      <PizarraFlotante roomId={lessonId} nombre={perfil?.full_name ?? 'Docente'} />
+      <PizarraFlotante roomId={lessonId} nombre={perfil?.full_name ?? 'Docente'} rol="docente" />
     </div>
   );
 }

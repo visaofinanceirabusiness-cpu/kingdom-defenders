@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { colorPorNombre } from '@/lib/color-por-nombre';
+import { FeedbackClase, yaDioFeedback } from '@/components/feedback/feedback-clase';
 
 type CursorRemoto = { x: number; y: number; nombre: string; color: string; ts: number };
 
@@ -162,8 +163,17 @@ function dibujarElemento(ctx: CanvasRenderingContext2D, el: Elemento, w: number,
   }
 }
 
-export function PizarraFlotante({ roomId, nombre = 'Alguien' }: { roomId: string; nombre?: string }) {
+export function PizarraFlotante({
+  roomId,
+  nombre = 'Alguien',
+  rol,
+}: {
+  roomId: string;
+  nombre?: string;
+  rol?: 'docente' | 'alumno';
+}) {
   const [abierta, setAbierta] = useState(false);
+  const [mostrandoFeedback, setMostrandoFeedback] = useState(false);
   const [herramienta, setHerramienta] = useState<Herramienta>('lapiz');
   const [color, setColor] = useState(COLORES[0]);
   const [fondo, setFondo] = useState<Fondo>('blanco');
@@ -422,6 +432,14 @@ export function PizarraFlotante({ roomId, nombre = 'Alguien' }: { roomId: string
     setTextoEditando(null);
   }
 
+  function manejarMinimizar() {
+    if (rol === 'docente' && !yaDioFeedback(roomId, 'docente')) {
+      setMostrandoFeedback(true);
+      return;
+    }
+    setAbierta(false);
+  }
+
   function limpiarTodo() {
     if (!window.confirm('¿Borrar todo el contenido de la pizarra?')) return;
     setElementos([]);
@@ -466,11 +484,24 @@ export function PizarraFlotante({ roomId, nombre = 'Alguien' }: { roomId: string
     <div className="fixed bottom-6 right-6 z-50 flex w-[min(92vw,720px)] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl">
       <div className="flex items-center justify-between gap-2 border-b border-border bg-surface-muted px-3 py-2">
         <span className="text-sm font-bold text-foreground/70">🖊️ Pizarra en vivo</span>
-        <button type="button" onClick={() => setAbierta(false)} className="rounded-lg px-2 py-1 text-sm font-semibold text-foreground/60 hover:bg-surface">
+        <button type="button" onClick={manejarMinimizar} className="rounded-lg px-2 py-1 text-sm font-semibold text-foreground/60 hover:bg-surface">
           — Minimizar
         </button>
       </div>
 
+      {mostrandoFeedback ? (
+        <div className="p-4">
+          <FeedbackClase
+            lessonId={roomId}
+            rol="docente"
+            onCerrar={() => {
+              setMostrandoFeedback(false);
+              setAbierta(false);
+            }}
+          />
+        </div>
+      ) : (
+        <>
       <div className="flex flex-wrap items-center gap-1.5 border-b border-border px-3 py-2">
         {(Object.keys(LABEL_HERRAMIENTA) as Herramienta[]).map((h) => (
           <button
@@ -576,6 +607,8 @@ export function PizarraFlotante({ roomId, nombre = 'Alguien' }: { roomId: string
           />
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

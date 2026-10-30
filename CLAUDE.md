@@ -385,6 +385,42 @@ nada resaltado — igual que la pizarra).
   contenido) y en `ClasePlayer` (alumno, los pasos de tipo `texto` —
   introducción, cada tema, evaluación).
 
+## Calificar la clase al terminar — hecho
+Pedido explícito: al salir, que tanto el profe como el alumno
+califiquen la app, para tener feedback. Se definió con el usuario
+guardarlo en Supabase (no un Google Form) — panel para verlo desde
+la app queda pendiente, por ahora se consulta directo en la tabla.
+
+- Tabla nueva `feedback_clase` (`lesson_id`, `session_id` nullable,
+  `rol` ('docente'/'alumno'), `rating` 1-5, `comentario` opcional,
+  `created_at`). RLS: el docente lee el feedback de sus propias
+  clases (`teacher_id = auth.uid()` vía `lessons`); no hay policy de
+  insert — se escribe desde `src/lib/feedback/actions.ts`
+  (`enviarFeedbackAction`, server action con el cliente admin, mismo
+  patrón que `registrarRespuestaAction`/`finalizarSesionAction` en
+  `/clase/sesion/[sessionId]/actions.ts`, porque el alumno no tiene
+  sesión de Supabase Auth).
+- `src/components/feedback/feedback-clase.tsx`: tarjeta con 5
+  estrellas clickeables + comentario opcional + "Enviar"/"Omitir".
+  `yaDioFeedback(lessonId, rol)` chequea `localStorage`
+  (`feedback-enviado:<lessonId>:<rol>`) para no volver a preguntar en
+  la misma clase/navegador — tanto enviar como omitir marcan la
+  clave.
+- **Alumno**: aparece debajo de la tarjeta "¡Clase terminada!" en
+  `ClasePlayer`, apenas termina de jugar esa sesión (no en
+  `ResultadoGuardado`, que es la pantalla de cuando vuelve a entrar
+  después — ahí no se pregunta de nuevo).
+- **Docente**: `PizarraFlotante` ahora recibe un prop `rol?:
+  'docente' | 'alumno'` — al tocar "Minimizar" con `rol === 'docente'`
+  y sin feedback previo para esa clase, en vez de minimizar
+  directamente muestra la tarjeta de calificación dentro del mismo
+  panel flotante (reemplaza la toolbar+canvas momentáneamente);
+  recién al enviar/omitir se minimiza de verdad. Solo se pasa
+  `rol="docente"` en los 2 usos del lado del docente (editor y
+  `/docente/sesion/[sessionId]`) — el uso del alumno
+  (`/clase/sesion/[sessionId]`) no pasa `rol`, así nunca le dispara
+  este flujo (el suyo es el de arriba, en `ClasePlayer`).
+
 ## Estado del proyecto (ver spec completo en el primer prompt del usuario)
 
 **Fase 1 — hecha:**

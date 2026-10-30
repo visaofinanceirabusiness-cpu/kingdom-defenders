@@ -65,7 +65,7 @@ export default async function SesionEnVivoDocentePage({ params }: { params: Prom
         </p>
       </Card>
 
-      <PizarraFlotante roomId={lesson.id} nombre={perfil?.full_name ?? 'Docente'} />
+      <PizarraFlotante roomId={lesson.id} nombre={perfil?.full_name ?? 'Docente'} rol="docente" />
     </div>
   );
 }

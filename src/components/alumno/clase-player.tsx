@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { GameRenderer } from '@/components/games/game-renderer';
 import { TextoResaltable } from '@/components/texto-resaltable';
+import { FeedbackClase, yaDioFeedback } from '@/components/feedback/feedback-clase';
 import { registrarRespuestaAction, finalizarSesionAction } from '@/app/clase/sesion/[sessionId]/actions';
 
 const TEXTO_SECCION: Record<string, { titulo: string; icono: string }> = {
@@ -63,6 +64,7 @@ export function ClasePlayer({
   const [indice, setIndice] = useState(0);
   const [finalizando, setFinalizando] = useState(false);
   const [resultadoFinal, setResultadoFinal] = useState<number | null>(null);
+  const [feedbackResuelto, setFeedbackResuelto] = useState(() => yaDioFeedback(roomId, 'alumno'));
   const pendientesRef = useRef<Promise<unknown>[]>([]);
   const inicioPasoRef = useRef<number | null>(null);
   const maxScoreTotal = actividades.reduce((acc, a) => acc + a.max_score, 0);
@@ -102,17 +104,22 @@ export function ClasePlayer({
     const emoji = porcentaje >= 80 ? '🏆' : porcentaje >= 50 ? '🎉' : '💪';
 
     return (
-      <Card className="flex flex-col items-center gap-3 py-10 text-center">
-        <span className="text-6xl">{emoji}</span>
-        <h2 className="text-2xl font-black">¡Clase terminada!</h2>
-        <p className="text-4xl font-black text-brand-600">
-          {resultadoFinal}/{maxScoreTotal}
-        </p>
-        <p className="text-foreground/60">{porcentaje}% de puntaje total.</p>
-        <Button variant="outline" onClick={() => router.push('/clase')} className="mt-2">
-          Entrar a otra clase
-        </Button>
-      </Card>
+      <div className="space-y-4">
+        <Card className="flex flex-col items-center gap-3 py-10 text-center">
+          <span className="text-6xl">{emoji}</span>
+          <h2 className="text-2xl font-black">¡Clase terminada!</h2>
+          <p className="text-4xl font-black text-brand-600">
+            {resultadoFinal}/{maxScoreTotal}
+          </p>
+          <p className="text-foreground/60">{porcentaje}% de puntaje total.</p>
+          <Button variant="outline" onClick={() => router.push('/clase')} className="mt-2">
+            Entrar a otra clase
+          </Button>
+        </Card>
+        {!feedbackResuelto && (
+          <FeedbackClase lessonId={roomId} sessionId={sessionId} rol="alumno" onCerrar={() => setFeedbackResuelto(true)} />
+        )}
+      </div>
     );
   }
 

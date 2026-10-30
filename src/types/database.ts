@@ -77,6 +77,32 @@ export type Database = {
           },
         ]
       }
+      ai_usage: {
+        Row: {
+          generations_count: number
+          period_start: string
+          teacher_id: string
+        }
+        Insert: {
+          generations_count?: number
+          period_start: string
+          teacher_id: string
+        }
+        Update: {
+          generations_count?: number
+          period_start?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_members: {
         Row: {
           course_id: string
@@ -153,6 +179,51 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback_clase: {
+        Row: {
+          comentario: string | null
+          created_at: string
+          id: string
+          lesson_id: string
+          rating: number
+          rol: string
+          session_id: string | null
+        }
+        Insert: {
+          comentario?: string | null
+          created_at?: string
+          id?: string
+          lesson_id: string
+          rating: number
+          rol: string
+          session_id?: string | null
+        }
+        Update: {
+          comentario?: string | null
+          created_at?: string
+          id?: string
+          lesson_id?: string
+          rating?: number
+          rol?: string
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_clase_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_clase_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -379,32 +450,6 @@ export type Database = {
           },
           {
             foreignKeyName: "materials_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ai_usage: {
-        Row: {
-          generations_count: number
-          period_start: string
-          teacher_id: string
-        }
-        Insert: {
-          generations_count?: number
-          period_start: string
-          teacher_id: string
-        }
-        Update: {
-          generations_count?: number
-          period_start?: string
-          teacher_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_usage_teacher_id_fkey"
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
