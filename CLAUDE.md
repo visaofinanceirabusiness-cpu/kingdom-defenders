@@ -125,6 +125,16 @@ Pendiente (fases siguientes, ver spec original):
 - Generación de imágenes para ilustrar actividades (mencionado por el
   usuario, no implementado — quedaría como un método nuevo en
   `AIProvider`, ej. `generateImage`, con su propio proveedor)
+- Monetización (idea, no decidida todavía): hoy AulaPlay es gratis e
+  ilimitado, el costo de OpenAI lo paga el dueño de la cuenta. Costo
+  estimado por clase generada con `gpt-4o`: ~u$s0.04-0.05 (2 llamadas,
+  análisis + generación completa; documentos largos pueden llegar a
+  u$s0.10-0.15). Con eso, 1.000 docentes activos generando ~15
+  clases/mes c/u sale ~u$s600-750/mes en OpenAI (bajaría a ~u$s60-75
+  si en algún momento hace falta cambiar a `gpt-4o-mini`, mismo código
+  salvo el nombre del modelo). Un plan pago de u$s5-10/docente/mes
+  dejaría margen amplio — no está construido (no hay Stripe, planes,
+  ni límites de uso todavía), queda como posible feature futura.
 
 ## Limitaciones conocidas de este entorno de desarrollo
 - Este sandbox NO tiene salida de red directa a `*.supabase.co` (solo
