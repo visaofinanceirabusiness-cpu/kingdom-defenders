@@ -386,11 +386,38 @@ export type Database = {
           },
         ]
       }
+      ai_usage: {
+        Row: {
+          generations_count: number
+          period_start: string
+          teacher_id: string
+        }
+        Insert: {
+          generations_count?: number
+          period_start: string
+          teacher_id: string
+        }
+        Update: {
+          generations_count?: number
+          period_start?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
           full_name: string
           id: string
+          plan: string
           role: string
           school_name: string | null
           updated_at: string
@@ -399,6 +426,7 @@ export type Database = {
           created_at?: string
           full_name: string
           id: string
+          plan?: string
           role?: string
           school_name?: string | null
           updated_at?: string
@@ -407,6 +435,7 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          plan?: string
           role?: string
           school_name?: string | null
           updated_at?: string
@@ -506,6 +535,7 @@ export type Database = {
       student_responses: {
         Row: {
           activity_id: string
+          duration_seconds: number | null
           id: string
           is_correct: boolean | null
           responded_at: string
@@ -515,6 +545,7 @@ export type Database = {
         }
         Insert: {
           activity_id: string
+          duration_seconds?: number | null
           id?: string
           is_correct?: boolean | null
           responded_at?: string
@@ -524,6 +555,7 @@ export type Database = {
         }
         Update: {
           activity_id?: string
+          duration_seconds?: number | null
           id?: string
           is_correct?: boolean | null
           responded_at?: string
