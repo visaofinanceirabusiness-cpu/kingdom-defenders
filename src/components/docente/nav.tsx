@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { signOutAction } from '@/app/(auth)/actions';
 import { cn } from '@/lib/utils';
 
@@ -16,12 +16,30 @@ const LINKS = [
 
 export function DocenteNav({ teacherName }: { teacherName: string }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const esDashboard = pathname === '/docente';
+
+  function volver() {
+    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
+    else router.push('/docente');
+  }
 
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-surface/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-        <Link href="/docente" className="flex items-center" onClick={() => setMenuAbierto(false)}>
+      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-4 sm:px-6">
+        {!esDashboard && (
+          <button
+            type="button"
+            onClick={volver}
+            className="shrink-0 rounded-lg px-2 py-2 text-sm font-semibold text-foreground/60 hover:bg-surface-muted"
+            aria-label="Volver"
+          >
+            <span className="sm:hidden">←</span>
+            <span className="hidden sm:inline">← Volver</span>
+          </button>
+        )}
+        <Link href="/docente" className="mr-auto flex items-center" onClick={() => setMenuAbierto(false)}>
           <Image src="/logo-full.png" alt="AulaPlay" width={132} height={46} priority />
         </Link>
 
