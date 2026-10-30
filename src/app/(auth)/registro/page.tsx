@@ -10,6 +10,24 @@ import { Card } from '@/components/ui/card';
 export default function RegistroPage() {
   const [state, formAction, pending] = useActionState(registerAction, null);
 
+  if (state && 'success' in state) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 via-background to-accent-400/10 px-4">
+        <Card className="w-full max-w-md text-center">
+          <span className="text-4xl">📬</span>
+          <h1 className="mt-4 mb-2 text-2xl font-bold">Revisá tu email</h1>
+          <p className="text-foreground/60">
+            Te mandamos un link de confirmación — entrá a tu correo y tocalo para activar tu cuenta. Después ya podés
+            iniciar sesión.
+          </p>
+          <Link href="/login" className="mt-6 inline-block font-semibold text-brand-600 hover:underline">
+            Ir a iniciar sesión
+          </Link>
+        </Card>
+      </main>
+    );
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 via-background to-accent-400/10 px-4 py-10">
       <Card className="w-full max-w-md">
