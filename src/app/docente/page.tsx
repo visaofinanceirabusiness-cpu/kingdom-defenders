@@ -27,10 +27,14 @@ export default async function DashboardDocentePage() {
 
   const courseIds = (cursos ?? []).map((c) => c.id);
 
-  const { count: alumnosCount } =
+  const [{ count: alumnosDeCursosCount }, { count: alumnosPropiosCount }] = await Promise.all([
     courseIds.length > 0
-      ? await supabase.from('course_members').select('id', { count: 'exact', head: true }).in('course_id', courseIds)
-      : { count: 0 };
+      ? supabase.from('course_members').select('id', { count: 'exact', head: true }).in('course_id', courseIds)
+      : Promise.resolve({ count: 0 }),
+    supabase.from('students').select('id', { count: 'exact', head: true }).eq('teacher_id', user.id),
+  ]);
+
+  const alumnosCount = (alumnosDeCursosCount ?? 0) + (alumnosPropiosCount ?? 0);
 
   // No depende de tener cursos creados — una clase puede publicarse y
   // jugarse sin estar asociada a ningún curso (course_id es opcional

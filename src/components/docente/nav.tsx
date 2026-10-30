@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils';
 const LINKS = [
   { href: '/docente', label: 'Dashboard', icon: '🏠' },
   { href: '/docente/cursos', label: 'Mis cursos', icon: '📚' },
+  { href: '/docente/alumnos', label: 'Mis alumnos', icon: '🧑‍🎓' },
+  { href: '/docente/biblioteca', label: 'Biblioteca', icon: '🗂️' },
 ];
 
 export function DocenteNav({ teacherName }: { teacherName: string }) {

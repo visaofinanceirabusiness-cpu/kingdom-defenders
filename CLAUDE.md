@@ -139,7 +139,45 @@ generadas por IA. Docentes de nivel secundario, cualquier materia.
   tiene sesión de Supabase Auth en el MVP — cada acción valida a mano
   que el código/sesión/actividad corresponda antes de escribir nada.
 
-Pendiente (ver spec original):
+**Ampliación — Profesor particular (hecha, 1era etapa):**
+- `students` ahora admite alumnos propios de un docente (sin curso):
+  `teacher_id`, `school_year`, `level`, `subjects` (jsonb). Alumnos de
+  curso (entran con código) siguen sin `teacher_id`. Nueva policy RLS
+  "un docente administra sus propios alumnos" (ALL, por `teacher_id`).
+- `docente/alumnos`: alta de alumnos propios + ficha individual
+  (`docente/alumnos/[id]`) con historial de sesiones, clases
+  realizadas/pendientes y puntaje — primera versión de "seguimiento
+  pedagógico" (lo que falta: tiempo de resolución, temas dominados/a
+  reforzar y recomendaciones de IA, quedan para una etapa posterior).
+- `docente/biblioteca`: lista las clases ya generadas (reusa `lessons`
+  tal cual, no hay tabla nueva de "plantillas") con dos acciones:
+  - **Duplicar** (`duplicarLessonAction`): copia `lessons` +
+    `lesson_sections` + `activities` con inserts planos — NUNCA llama
+    a la IA, así reusar/duplicar no gasta una generación.
+  - **Usar con un alumno** (`asignarSesionAction`): crea una
+    `sessions` directo para un alumno propio, sin pasar por el código
+    de acceso público — da un link `/clase/sesion/[id]` para mandar
+    por fuera (reusa el jugador de la Fase 3 sin cambios).
+- `sessions` NO cambió de esquema — ya era, conceptualmente, el
+  `LessonSession` del pedido: desacopla clase y alumno, cada uso
+  genera una fila independiente, y la plantilla original nunca se
+  toca al ejecutar una sesión.
+- Decisión tomada con el usuario: los límites de plan (alumnos,
+  generaciones de IA, clases guardadas) van a quedar fijos en código
+  (no editables desde Supabase) cuando se implementen — todavía no
+  están implementados, es la siguiente etapa.
+
+Pendiente de la ampliación (etapas siguientes, en el orden pedido):
+- Personalización por nivel (variantes de una clase) — decisión de
+  diseño ya tomada pero no implementada: la variante sería otra fila
+  en `lessons` con `base_lesson_id` (self-FK) y `variant_level`, para
+  reusar toda la infraestructura de secciones/actividades sin tabla
+  paralela
+- Seguimiento pedagógico más completo (tiempo de resolución, temas
+  dominados/a reforzar, recomendación de IA para la próxima clase)
+- Límites de uso por plan de suscripción (fijos en código, ver arriba)
+
+Pendiente (ver spec original de AulaPlay):
 - Resto de los 7 componentes de render de juegos
 - Edición fina de las secciones de texto generadas (hoy se ven, se
   puede borrar una actividad, pero no hay edición inline del texto de

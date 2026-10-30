@@ -541,20 +541,40 @@ export type Database = {
           created_at: string
           display_name: string
           id: string
+          level: string | null
+          school_year: string | null
+          subjects: Json
+          teacher_id: string | null
         }
         Insert: {
           access_code: string
           created_at?: string
           display_name: string
           id?: string
+          level?: string | null
+          school_year?: string | null
+          subjects?: Json
+          teacher_id?: string | null
         }
         Update: {
           access_code?: string
           created_at?: string
           display_name?: string
           id?: string
+          level?: string | null
+          school_year?: string | null
+          subjects?: Json
+          teacher_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "students_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
