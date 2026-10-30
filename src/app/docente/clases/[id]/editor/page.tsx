@@ -8,6 +8,7 @@ import { ActivityCard } from '@/components/docente/activity-card';
 import { PublishLessonButton } from '@/components/docente/publish-lesson-button';
 import { PizarraFlotante } from '@/components/pizarra/pizarra-flotante';
 import { PresenciaClase } from '@/components/presencia/presencia-clase';
+import { TextoResaltable } from '@/components/texto-resaltable';
 
 const TEXTO_SECCION: Record<string, { titulo: string; icono: string }> = {
   introduction: { titulo: 'Introducción', icono: '👋' },
@@ -149,9 +150,11 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
                   className="mb-3 max-h-64 w-full rounded-xl border border-border object-contain"
                 />
               )}
-              <p className="whitespace-pre-line text-foreground/80">
-                {(seccion.content as { text?: string } | null)?.text ?? ''}
-              </p>
+              <TextoResaltable
+                texto={(seccion.content as { text?: string } | null)?.text ?? ''}
+                storageKey={`${seccion.id}-intro`}
+                className="whitespace-pre-line text-foreground/80"
+              />
             </Card>
           ))}
 
@@ -175,9 +178,17 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
                           <img src={contenido.image_url} alt="" className="mb-3 max-h-64 w-full rounded-xl border border-border object-contain" />
                         )}
                         <p className="mb-1 text-xs font-bold text-foreground/50">TEORÍA</p>
-                        <p className="whitespace-pre-line text-foreground/80">{contenido?.theory ?? ''}</p>
+                        <TextoResaltable
+                          texto={contenido?.theory ?? ''}
+                          storageKey={`${seccion.id}-theory`}
+                          className="whitespace-pre-line text-foreground/80"
+                        />
                         <p className="mt-4 mb-1 text-xs font-bold text-foreground/50">EJEMPLOS</p>
-                        <p className="whitespace-pre-line text-foreground/80">{contenido?.examples ?? ''}</p>
+                        <TextoResaltable
+                          texto={contenido?.examples ?? ''}
+                          storageKey={`${seccion.id}-examples`}
+                          className="whitespace-pre-line text-foreground/80"
+                        />
                       </div>
                     </details>
                   );
@@ -194,9 +205,11 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
                 <span>{TEXTO_SECCION.evaluation.icono}</span>
                 {TEXTO_SECCION.evaluation.titulo}
               </h2>
-              <p className="whitespace-pre-line text-foreground/80">
-                {(seccion.content as { text?: string } | null)?.text ?? ''}
-              </p>
+              <TextoResaltable
+                texto={(seccion.content as { text?: string } | null)?.text ?? ''}
+                storageKey={`${seccion.id}-eval`}
+                className="whitespace-pre-line text-foreground/80"
+              />
             </Card>
           ))}
 

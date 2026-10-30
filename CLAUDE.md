@@ -315,6 +315,38 @@ en vivo sobre la pizarra, no solo el dibujo final.
   `perfil?.full_name ?? 'Docente'`, los mismos valores que ya se le
   pasaban a `PresenciaClase`.
 
+## Resaltador tipo flúor sobre el texto — hecho
+Pedido explícito: poder "pintar en flúor" el texto de la clase, como
+un marcador.
+
+- `src/components/texto-resaltable.tsx`: reemplaza el `<p
+  className="whitespace-pre-line ...">{texto}</p>` de cada párrafo de
+  contenido (introducción, teoría/ejemplos de cada tema, evaluación)
+  por `<TextoResaltable texto={...} storageKey={...}
+  className={...} />`. Al seleccionar texto con el mouse dentro del
+  párrafo, lo marca con `<mark>` en amarillo flúor; tocar un tramo ya
+  marcado lo quita.
+- A diferencia de la pizarra, esto es **personal y local** — no usa
+  ningún canal de Realtime ni se sincroniza entre docente y alumno a
+  propósito: lo que resalta cada uno es suyo (no tendría sentido que
+  la profe viera subrayado lo que el alumno marcó, o al revés). Se
+  guarda en `localStorage` del navegador, con clave
+  `resaltado:<storageKey>` (`storageKey` = `<seccion.id>-intro` /
+  `-theory` / `-examples` / `-eval` en el editor del docente,
+  `<paso.key>-texto` / `-extra` en `ClasePlayer`), así el resaltado
+  sigue ahí la próxima vez que esa persona entra a la misma clase
+  desde el mismo navegador (no entre dispositivos distintos — es
+  localStorage, no hay tabla nueva).
+- Los rangos se calculan con la Selection/Range API contando
+  caracteres desde el inicio del párrafo (`offsetDesdeRange`), no con
+  `indexOf(texto seleccionado)`, para no confundirse si la misma
+  palabra o frase aparece dos veces en el mismo párrafo. Rangos que
+  se superponen al agregar uno nuevo se fusionan en uno solo
+  (`fusionarRangos`).
+- Montado en `/docente/clases/[id]/editor` (los 4 párrafos de
+  contenido) y en `ClasePlayer` (alumno, los pasos de tipo `texto` —
+  introducción, cada tema, evaluación).
+
 ## Estado del proyecto (ver spec completo en el primer prompt del usuario)
 
 **Fase 1 — hecha:**

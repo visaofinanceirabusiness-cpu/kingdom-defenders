@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { GameRenderer } from '@/components/games/game-renderer';
+import { TextoResaltable } from '@/components/texto-resaltable';
 import { registrarRespuestaAction, finalizarSesionAction } from '@/app/clase/sesion/[sessionId]/actions';
 
 const TEXTO_SECCION: Record<string, { titulo: string; icono: string }> = {
@@ -132,11 +133,11 @@ export function ClasePlayer({ sessionId, secciones, actividades }: { sessionId: 
             // eslint-disable-next-line @next/next/no-img-element
             <img src={paso.imagenUrl} alt="" className="mb-3 max-h-64 w-full rounded-xl border border-border object-contain" />
           )}
-          <p className="whitespace-pre-line text-foreground/80">{paso.texto}</p>
+          <TextoResaltable texto={paso.texto} storageKey={`${paso.key}-texto`} className="whitespace-pre-line text-foreground/80" />
           {paso.extra && (
             <>
               <p className="mt-4 mb-1 text-xs font-bold text-foreground/50">{paso.extraLabel}</p>
-              <p className="whitespace-pre-line text-foreground/80">{paso.extra}</p>
+              <TextoResaltable texto={paso.extra} storageKey={`${paso.key}-extra`} className="whitespace-pre-line text-foreground/80" />
             </>
           )}
           <Button className="mt-6" onClick={avanzar}>
