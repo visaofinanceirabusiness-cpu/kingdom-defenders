@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { Card } from '@/components/ui/card';
 import { ClasePlayer } from '@/components/alumno/clase-player';
+import { PizarraFlotante } from '@/components/pizarra/pizarra-flotante';
 
 export default async function SesionPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params;
@@ -56,6 +57,8 @@ export default async function SesionPage({ params }: { params: Promise<{ session
           <ClasePlayer sessionId={session.id} secciones={secciones ?? []} actividades={actividades ?? []} />
         )}
       </div>
+
+      <PizarraFlotante roomId={session.id} />
     </main>
   );
 }

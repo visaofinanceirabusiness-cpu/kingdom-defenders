@@ -11,6 +11,7 @@ export function AsignarSesionButton({ lessonId, alumnos }: { lessonId: string; a
   const [studentId, setStudentId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [link, setLink] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function asignar() {
@@ -24,6 +25,7 @@ export function AsignarSesionButton({ lessonId, alumnos }: { lessonId: string; a
       }
       if (resultado && 'success' in resultado && resultado.sessionId) {
         setLink(`${window.location.origin}/clase/sesion/${resultado.sessionId}`);
+        setSessionId(resultado.sessionId);
       }
     });
   }
@@ -36,7 +38,7 @@ export function AsignarSesionButton({ lessonId, alumnos }: { lessonId: string; a
     );
   }
 
-  if (link) {
+  if (link && sessionId) {
     return (
       <div className="rounded-lg bg-success-500/10 px-3 py-2 text-sm">
         <p className="font-semibold text-success-600">¡Sesión creada! Mandale este link:</p>
@@ -46,6 +48,9 @@ export function AsignarSesionButton({ lessonId, alumnos }: { lessonId: string; a
           onFocus={(e) => e.currentTarget.select()}
           className="mt-1 w-full rounded border border-border bg-surface px-2 py-1 text-xs"
         />
+        <a href={`/docente/sesion/${sessionId}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs font-semibold text-brand-700 hover:underline">
+          🖊️ Abrir pizarra en vivo para acompañarlo →
+        </a>
       </div>
     );
   }

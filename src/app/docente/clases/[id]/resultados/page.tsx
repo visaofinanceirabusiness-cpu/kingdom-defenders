@@ -94,6 +94,9 @@ export default async function ResultadosPage({ params }: { params: Promise<{ id:
                       ) : (
                         <Badge tone="warning">En curso</Badge>
                       )}
+                      <Link href={`/docente/sesion/${s.id}`} className="text-xs font-semibold text-brand-600 hover:underline">
+                        🖊️ Pizarra
+                      </Link>
                     </div>
                   </li>
                 ))}

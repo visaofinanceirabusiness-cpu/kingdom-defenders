@@ -75,7 +75,7 @@ export default async function DashboardDocentePage() {
     <div>
       <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-black text-foreground">Tu negocio educativo hoy</h1>
+          <h1 className="text-3xl font-black text-foreground">Una app para profesores, creada por profesores ❤️</h1>
           <p className="mt-1 text-foreground/60">Un resumen rápido de tus cursos y clases.</p>
         </div>
         <Link href="/docente/clases/nueva">

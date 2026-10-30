@@ -141,6 +141,34 @@ de IA configurada, con el docente armando la clase 100% a mano
   cursos/[id]` (editar/eliminar el curso + cada clase del curso),
   `docente/biblioteca` (editar/eliminar cada clase).
 
+## Pizarra en vivo — hecho
+Pedido explícito: una pizarra compartida docente/alumno dentro de la
+clase, accesible todo el tiempo vía un círculo flotante, minimizable.
+
+- `src/components/pizarra/pizarra-flotante.tsx` — un solo componente
+  cliente autocontenido: botón circular flotante (`position: fixed`)
+  que abre/cierra un panel con toolbar + `<canvas>`. Herramientas:
+  lápiz (trazo libre), línea, rectángulo, círculo, triángulo, ángulo
+  (3 clics: vértice + dos rayos, calcula y muestra los grados) y goma
+  (click sobre un elemento para borrarlo, por distancia punto-segmento,
+  no por píxel). Fondo cicla blanco/cuadriculado/renglones.
+- **NO se persiste en la base** — es "en vivo" literal, no un archivo:
+  se sincroniza con un canal de Supabase Realtime **broadcast** (no
+  usa tablas ni RLS) nombrado `pizarra:${roomId}`, con `roomId` =
+  `sessions.id`. Al conectarse, cada lado pide el estado actual
+  (`pedir-estado`) y el otro responde si lo tiene (`estado`) — así un
+  recién llegado se pone al día sin necesitar guardar nada. Si las dos
+  pestañas se cierran, el contenido se pierde (a propósito).
+- Montada en `/clase/sesion/[sessionId]` (lado alumno, sin cuenta) y
+  en la nueva `/docente/sesion/[sessionId]` (lado docente — página
+  mínima pensada para acompañar una sesión en vivo, para el caso de
+  profesor particular). Mismo `roomId` = misma pizarra. Linkeada desde
+  `AsignarSesionButton` (al crear la sesión) y desde `resultados/`
+  (por cada fila de alumno).
+- El canal solo se abre cuando el docente/alumno abre la pizarra (no
+  al cargar la página) para no gastar una conexión de Realtime por
+  cada uno que ni la toca.
+
 ## Estado del proyecto (ver spec completo en el primer prompt del usuario)
 
 **Fase 1 — hecha:**
