@@ -99,8 +99,13 @@ ${input.text.slice(0, 12000)}
 
 {
   "introduction": "texto de introducción al tema, motivador, 2-3 párrafos",
-  "theory": "explicación teórica clara, adaptada al nivel indicado",
-  "examples": "2-3 ejemplos prácticos resueltos",
+  "temas": [
+    {
+      "title": "título corto de este sub-tema",
+      "theory": "explicación teórica clara de este sub-tema, adaptada al nivel indicado",
+      "examples": "1-2 ejemplos prácticos resueltos de este sub-tema"
+    }
+  ],
   "activities": [
     {
       "gameType": "trivia" | "true_or_false" | "fill_in_the_blank" | "memory_match" | "order",
@@ -115,6 +120,8 @@ ${input.text.slice(0, 12000)}
   },
   "evaluationSummary": "breve resumen de qué evalúa esta clase y cómo"
 }
+
+Dividí el contenido en 1 a 6 "temas" — un sub-tema por cada concepto o bloque separable del material (si el tema es chico y no da para dividirlo, está bien que sea uno solo). Cada tema se muestra en la clase como un desplegable con su propia teoría y su propio ejemplo — no mezcles la teoría de dos temas en uno solo.
 
 Generá entre 2 y 8 actividades (no solo una), todas del tema de la clase. Todas son optativas para el alumno (no hace falta que cubran todo el temario), así que priorizá variedad de gameType por sobre cantidad — está bien repetir un tipo más de una vez si tiene sentido, pero nunca más de 5 veces el mismo.
 

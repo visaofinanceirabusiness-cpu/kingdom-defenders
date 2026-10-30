@@ -2,18 +2,16 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { addSectionSchema, type SectionType } from '@/lib/validations/lesson-manual';
+import { addSectionSchema, addTemaSchema, MAX_TEMAS_POR_CLASE, type SectionType } from '@/lib/validations/lesson-manual';
 import { validateGameConfig } from '@/lib/games/registry';
 import type { GameTypeId } from '@/lib/games/schemas';
 import type { Json } from '@/types/database';
 
 export type ConstruirActionState = { error: string } | { success: true } | null;
 
-const POSICION_SECCION: Record<SectionType, number> = { introduction: 0, theory: 1, examples: 2, evaluation: 5 };
+const POSICION_SECCION: Record<SectionType, number> = { introduction: 0, evaluation: 102 };
 const TITULO_SECCION: Record<SectionType, string> = {
   introduction: 'Introducción',
-  theory: 'Explicación teórica',
-  examples: 'Ejemplos prácticos',
   evaluation: 'Evaluación',
 };
 
@@ -90,6 +88,84 @@ export async function eliminarSeccionAction(lessonId: string, sectionId: string)
   return { success: true };
 }
 
+// Un tema = teoría + ejemplo propios de un sub-tema — a diferencia de
+// introducción/evaluación, una clase puede tener varios, así que acá
+// siempre se agrega una fila nueva (o se actualiza una existente si
+// se pasa `temaId`, para poder editar sin duplicar).
+export async function guardarTemaAction(
+  lessonId: string,
+  temaId: string | null,
+  _prevState: ConstruirActionState,
+  formData: FormData
+): Promise<ConstruirActionState> {
+  const parsed = addTemaSchema.safeParse({
+    title: formData.get('title'),
+    theory: formData.get('theory'),
+    examples: formData.get('examples'),
+    imageUrl: formData.get('imageUrl') || undefined,
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Datos inválidos.' };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: 'Tu sesión expiró — volvé a iniciar sesión.' };
+  }
+
+  const { data: lesson } = await supabase.from('lessons').select('id').eq('id', lessonId).eq('teacher_id', user.id).maybeSingle();
+  if (!lesson) {
+    return { error: 'Clase no encontrada.' };
+  }
+
+  const content: Json = parsed.data.imageUrl
+    ? { theory: parsed.data.theory, examples: parsed.data.examples, image_url: parsed.data.imageUrl }
+    : { theory: parsed.data.theory, examples: parsed.data.examples };
+
+  if (temaId) {
+    const { error } = await supabase
+      .from('lesson_sections')
+      .update({ title: parsed.data.title, content })
+      .eq('id', temaId)
+      .eq('lesson_id', lessonId)
+      .eq('section_type', 'tema');
+
+    if (error) {
+      return { error: `No se pudo guardar el tema: ${error.message}` };
+    }
+  } else {
+    const { count } = await supabase
+      .from('lesson_sections')
+      .select('id', { count: 'exact', head: true })
+      .eq('lesson_id', lessonId)
+      .eq('section_type', 'tema');
+
+    if ((count ?? 0) >= MAX_TEMAS_POR_CLASE) {
+      return { error: `Ya tenés el máximo de ${MAX_TEMAS_POR_CLASE} temas en esta clase.` };
+    }
+
+    const { error } = await supabase.from('lesson_sections').insert({
+      lesson_id: lessonId,
+      section_type: 'tema',
+      title: parsed.data.title,
+      position: 1 + (count ?? 0),
+      content,
+    });
+
+    if (error) {
+      return { error: `No se pudo crear el tema: ${error.message}` };
+    }
+  }
+
+  revalidatePath(`/docente/clases/${lessonId}/construir`);
+  return { success: true };
+}
+
 // Todas las actividades manuales van a una única sección "activity"
 // (se crea la primera vez que hace falta) — en modo manual no se
 // distingue actividad regular de desafío final, para no complicar el
@@ -106,7 +182,7 @@ async function obtenerOcrearSeccionActividades(supabase: Awaited<ReturnType<type
 
   const { data: nueva, error } = await supabase
     .from('lesson_sections')
-    .insert({ lesson_id: lessonId, section_type: 'activity', title: 'Actividades interactivas', position: 3, content: {} })
+    .insert({ lesson_id: lessonId, section_type: 'activity', title: 'Actividades interactivas', position: 100, content: {} })
     .select('id')
     .single();
 

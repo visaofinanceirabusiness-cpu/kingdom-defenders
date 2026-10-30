@@ -4,9 +4,9 @@ import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SeccionForm } from '@/components/docente/seccion-form';
+import { TemasSection } from '@/components/docente/temas-section';
 import { AgregarActividadForm } from '@/components/docente/agregar-actividad-form';
 import { ActivityCard } from '@/components/docente/activity-card';
-import { SECTION_TYPES, type SectionType } from '@/lib/validations/lesson-manual';
 import type { GameTypeId } from '@/lib/games/schemas';
 
 export default async function ConstruirClasePage({ params }: { params: Promise<{ id: string }> }) {
@@ -30,11 +30,17 @@ export default async function ConstruirClasePage({ params }: { params: Promise<{
   }
 
   const [{ data: secciones }, { data: actividades }] = await Promise.all([
-    supabase.from('lesson_sections').select('id, section_type, content').eq('lesson_id', lessonId),
+    supabase.from('lesson_sections').select('id, section_type, title, content, position').eq('lesson_id', lessonId).order('position'),
     supabase.from('activities').select('id, title, game_template_id, config, position').eq('lesson_id', lessonId).order('position'),
   ]);
 
   const seccionPorTipo = new Map((secciones ?? []).map((s) => [s.section_type, s]));
+  const temas = (secciones ?? [])
+    .filter((s) => s.section_type === 'tema')
+    .map((s) => {
+      const contenido = s.content as { theory?: string; examples?: string; image_url?: string } | null;
+      return { id: s.id, title: s.title, theory: contenido?.theory, examples: contenido?.examples, image_url: contenido?.image_url };
+    });
 
   const cantidadPorTipo: Partial<Record<GameTypeId, number>> = {};
   for (const a of actividades ?? []) {
@@ -58,21 +64,45 @@ export default async function ConstruirClasePage({ params }: { params: Promise<{
       </div>
 
       <div className="mt-6 space-y-4">
-        <h2 className="text-lg font-bold">Contenido de la clase</h2>
-        {SECTION_TYPES.map((tipo: SectionType) => {
-          const seccion = seccionPorTipo.get(tipo);
+        <h2 className="text-lg font-bold">Introducción</h2>
+        {(() => {
+          const seccion = seccionPorTipo.get('introduction');
           const contenido = seccion?.content as { text?: string; image_url?: string } | undefined;
           return (
             <SeccionForm
-              key={tipo}
               lessonId={lessonId}
-              sectionType={tipo}
+              sectionType="introduction"
               seccionId={seccion?.id}
               texto={contenido?.text}
               imagenUrl={contenido?.image_url}
             />
           );
-        })}
+        })()}
+      </div>
+
+      <div className="mt-8 space-y-4">
+        <h2 className="text-lg font-bold">Temas (teoría + ejemplo)</h2>
+        <p className="-mt-2 text-sm text-foreground/60">
+          Cada tema se muestra como un desplegable aparte. Podés agregar los que necesites.
+        </p>
+        <TemasSection lessonId={lessonId} temas={temas} />
+      </div>
+
+      <div className="mt-8 space-y-4">
+        <h2 className="text-lg font-bold">Evaluación</h2>
+        {(() => {
+          const seccion = seccionPorTipo.get('evaluation');
+          const contenido = seccion?.content as { text?: string; image_url?: string } | undefined;
+          return (
+            <SeccionForm
+              lessonId={lessonId}
+              sectionType="evaluation"
+              seccionId={seccion?.id}
+              texto={contenido?.text}
+              imagenUrl={contenido?.image_url}
+            />
+          );
+        })()}
       </div>
 
       <div className="mt-8 space-y-4">

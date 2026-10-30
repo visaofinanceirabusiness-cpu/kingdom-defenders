@@ -32,14 +32,22 @@ const proposedActivitySchema = z.object({
   config: z.record(z.string(), z.unknown()),
 });
 
+// Un "tema" agrupa su propia explicación teórica + ejemplo práctico
+// — una clase puede tener varios (se muestran apilados en
+// desplegables), reemplaza el viejo par único theory/examples.
+const temaSchema = z.object({
+  title: z.string().min(1),
+  theory: z.string().min(1),
+  examples: z.string().min(1),
+});
+
 // Libre de repetir tipo de juego (antes tendía a salir "una de cada
 // una" con solo 3 tipos posibles y 4 actividades como techo) — ahora
 // hasta 10 actividades en total, con un tope de 5 por tipo para que
 // no se desbalanceen hacia uno solo.
 export const lessonGenerationSchema = z.object({
   introduction: z.string().min(1),
-  theory: z.string().min(1),
-  examples: z.string().min(1),
+  temas: z.array(temaSchema).min(1).max(6),
   activities: z
     .array(proposedActivitySchema)
     .min(1)
@@ -58,3 +66,4 @@ export const lessonGenerationSchema = z.object({
 
 export type LessonGeneration = z.infer<typeof lessonGenerationSchema>;
 export type ProposedActivity = z.infer<typeof proposedActivitySchema>;
+export type Tema = z.infer<typeof temaSchema>;

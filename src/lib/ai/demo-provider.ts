@@ -43,8 +43,18 @@ export class DemoProvider implements AIProvider {
 
     return {
       introduction: `${aviso} Bienvenidos a la clase de ${input.subject}: "${input.topic}". Hoy vamos a explorar este tema paso a paso, con ejemplos y actividades.`,
-      theory: `${aviso} ${input.summary}\n\nObjetivos de esta clase:\n${input.learningObjectives.map((o) => `• ${o}`).join('\n')}`,
-      examples: `${aviso} Ejemplo 1: aplicación básica del concepto central de "${input.topic}".\nEjemplo 2: un caso un poco más avanzado, para los que ya entendieron lo anterior.`,
+      temas: [
+        {
+          title: `${input.topic} — Parte 1`,
+          theory: `${aviso} ${input.summary}\n\nObjetivos de esta clase:\n${input.learningObjectives.map((o) => `• ${o}`).join('\n')}`,
+          examples: `${aviso} Ejemplo: aplicación básica del concepto central de "${input.topic}".`,
+        },
+        {
+          title: `${input.topic} — Parte 2`,
+          theory: `${aviso} Segundo sub-tema de ejemplo, para mostrar cómo se ven varios temas apilados en desplegables.`,
+          examples: `${aviso} Ejemplo: un caso un poco más avanzado, para los que ya entendieron la parte anterior.`,
+        },
+      ],
       activities: [
         {
           gameType: 'trivia',

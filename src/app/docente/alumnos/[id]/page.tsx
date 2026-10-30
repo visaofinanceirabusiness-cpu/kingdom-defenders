@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { DeleteStudentButton } from '@/components/docente/delete-student-button';
 
 type NivelDominio = 'dominado' | 'reforzar' | 'en_progreso';
 
@@ -91,9 +92,13 @@ export default async function AlumnoDetallePage({ params }: { params: Promise<{ 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black text-foreground">{alumno.display_name}</h1>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             {alumno.level && <Badge tone="brand">{alumno.level}</Badge>}
             {alumno.school_year && <Badge tone="accent">{alumno.school_year}</Badge>}
+            <Link href={`/docente/alumnos/${alumno.id}/editar`} className="text-xs font-semibold text-brand-600 hover:underline">
+              Editar
+            </Link>
+            <DeleteStudentButton studentId={alumno.id} studentName={alumno.display_name} variant="inline" redirectAfter="/docente/alumnos" />
           </div>
         </div>
         <Link href="/docente/biblioteca">

@@ -9,8 +9,6 @@ import type { SectionType } from '@/lib/validations/lesson-manual';
 
 const LABELS: Record<SectionType, { titulo: string; icono: string; placeholder: string }> = {
   introduction: { titulo: 'Introducción', icono: '👋', placeholder: 'Bienvenida a la clase, qué van a aprender hoy...' },
-  theory: { titulo: 'Explicación teórica', icono: '📖', placeholder: 'El contenido teórico, conceptos, definiciones...' },
-  examples: { titulo: 'Ejemplos prácticos', icono: '💡', placeholder: 'Ejemplos resueltos paso a paso...' },
   evaluation: { titulo: 'Evaluación', icono: '📝', placeholder: 'Resumen o consigna de evaluación final...' },
 };
 

@@ -9,15 +9,13 @@ import { registrarRespuestaAction, finalizarSesionAction } from '@/app/clase/ses
 
 const TEXTO_SECCION: Record<string, { titulo: string; icono: string }> = {
   introduction: { titulo: 'Introducción', icono: '👋' },
-  theory: { titulo: 'Explicación teórica', icono: '📖' },
-  examples: { titulo: 'Ejemplos prácticos', icono: '💡' },
   evaluation: { titulo: 'Para repasar', icono: '📝' },
 };
 
-type Seccion = { id: string; section_type: string; content: unknown; position: number };
+type Seccion = { id: string; section_type: string; content: unknown; title: string; position: number };
 type Actividad = { id: string; lesson_section_id: string | null; title: string; game_template_id: string; config: unknown; max_score: number; position: number };
 
-type PasoTexto = { tipo: 'texto'; key: string; icono: string; titulo: string; texto: string; imagenUrl?: string };
+type PasoTexto = { tipo: 'texto'; key: string; icono: string; titulo: string; texto: string; imagenUrl?: string; extraLabel?: string; extra?: string };
 type PasoJuego = { tipo: 'juego'; key: string; actividad: Actividad };
 
 export function ClasePlayer({ sessionId, secciones, actividades }: { sessionId: string; secciones: Seccion[]; actividades: Actividad[] }) {
@@ -30,6 +28,19 @@ export function ClasePlayer({ sessionId, secciones, actividades }: { sessionId: 
       const texto = contenido?.text ?? '';
       if (!texto) continue;
       pasos.push({ tipo: 'texto', key: seccion.id, ...TEXTO_SECCION[seccion.section_type], texto, imagenUrl: contenido?.image_url });
+    } else if (seccion.section_type === 'tema') {
+      const contenido = seccion.content as { theory?: string; examples?: string; image_url?: string } | null;
+      if (!contenido?.theory) continue;
+      pasos.push({
+        tipo: 'texto',
+        key: seccion.id,
+        icono: '📖',
+        titulo: seccion.title,
+        texto: contenido.theory,
+        imagenUrl: contenido.image_url,
+        extraLabel: '💡 Ejemplos',
+        extra: contenido.examples,
+      });
     } else if (seccion.section_type === 'activity' || seccion.section_type === 'final_challenge') {
       const actividadesDeLaSeccion = actividades.filter((a) => a.lesson_section_id === seccion.id).sort((a, b) => a.position - b.position);
       for (const actividad of actividadesDeLaSeccion) {
@@ -122,6 +133,12 @@ export function ClasePlayer({ sessionId, secciones, actividades }: { sessionId: 
             <img src={paso.imagenUrl} alt="" className="mb-3 max-h-64 w-full rounded-xl border border-border object-contain" />
           )}
           <p className="whitespace-pre-line text-foreground/80">{paso.texto}</p>
+          {paso.extra && (
+            <>
+              <p className="mt-4 mb-1 text-xs font-bold text-foreground/50">{paso.extraLabel}</p>
+              <p className="whitespace-pre-line text-foreground/80">{paso.extra}</p>
+            </>
+          )}
           <Button className="mt-6" onClick={avanzar}>
             Siguiente →
           </Button>

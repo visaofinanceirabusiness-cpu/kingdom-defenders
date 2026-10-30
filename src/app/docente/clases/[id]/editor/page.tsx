@@ -10,8 +10,6 @@ import { PizarraFlotante } from '@/components/pizarra/pizarra-flotante';
 
 const TEXTO_SECCION: Record<string, { titulo: string; icono: string }> = {
   introduction: { titulo: 'Introducción', icono: '👋' },
-  theory: { titulo: 'Explicación teórica', icono: '📖' },
-  examples: { titulo: 'Ejemplos prácticos', icono: '💡' },
   evaluation: { titulo: 'Evaluación', icono: '📝' },
 };
 
@@ -123,12 +121,12 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
 
       <div className="mt-6 space-y-6">
         {secciones
-          .filter((s) => s.section_type in TEXTO_SECCION)
+          .filter((s) => s.section_type === 'introduction')
           .map((seccion) => (
             <Card key={seccion.id}>
               <h2 className="mb-2 flex items-center gap-2 text-lg font-bold">
-                <span>{TEXTO_SECCION[seccion.section_type].icono}</span>
-                {TEXTO_SECCION[seccion.section_type].titulo}
+                <span>{TEXTO_SECCION.introduction.icono}</span>
+                {TEXTO_SECCION.introduction.titulo}
               </h2>
               {(seccion.content as { image_url?: string } | null)?.image_url && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -138,6 +136,51 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
                   className="mb-3 max-h-64 w-full rounded-xl border border-border object-contain"
                 />
               )}
+              <p className="whitespace-pre-line text-foreground/80">
+                {(seccion.content as { text?: string } | null)?.text ?? ''}
+              </p>
+            </Card>
+          ))}
+
+        {secciones.filter((s) => s.section_type === 'tema').length > 0 && (
+          <div>
+            <h2 className="mb-3 flex items-center gap-2 text-lg font-bold">📖 Temas</h2>
+            <div className="space-y-2">
+              {secciones
+                .filter((s) => s.section_type === 'tema')
+                .map((seccion) => {
+                  const contenido = seccion.content as { theory?: string; examples?: string; image_url?: string } | null;
+                  return (
+                    <details key={seccion.id} className="group rounded-xl border border-border bg-surface open:shadow-sm">
+                      <summary className="cursor-pointer list-none px-4 py-3 font-bold marker:content-none">
+                        <span className="mr-2 inline-block transition-transform group-open:rotate-90">▶</span>
+                        {seccion.title}
+                      </summary>
+                      <div className="border-t border-border px-4 py-3">
+                        {contenido?.image_url && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={contenido.image_url} alt="" className="mb-3 max-h-64 w-full rounded-xl border border-border object-contain" />
+                        )}
+                        <p className="mb-1 text-xs font-bold text-foreground/50">TEORÍA</p>
+                        <p className="whitespace-pre-line text-foreground/80">{contenido?.theory ?? ''}</p>
+                        <p className="mt-4 mb-1 text-xs font-bold text-foreground/50">EJEMPLOS</p>
+                        <p className="whitespace-pre-line text-foreground/80">{contenido?.examples ?? ''}</p>
+                      </div>
+                    </details>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+
+        {secciones
+          .filter((s) => s.section_type === 'evaluation')
+          .map((seccion) => (
+            <Card key={seccion.id}>
+              <h2 className="mb-2 flex items-center gap-2 text-lg font-bold">
+                <span>{TEXTO_SECCION.evaluation.icono}</span>
+                {TEXTO_SECCION.evaluation.titulo}
+              </h2>
               <p className="whitespace-pre-line text-foreground/80">
                 {(seccion.content as { text?: string } | null)?.text ?? ''}
               </p>

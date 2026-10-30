@@ -34,7 +34,7 @@ export default async function SesionPage({ params }: { params: Promise<{ session
   const [{ data: lesson }, { data: student }, { data: secciones }, { data: actividades }] = await Promise.all([
     admin.from('lessons').select('title, subject').eq('id', session.lesson_id).maybeSingle(),
     admin.from('students').select('display_name').eq('id', session.student_id).maybeSingle(),
-    admin.from('lesson_sections').select('id, section_type, content, position').eq('lesson_id', session.lesson_id).order('position'),
+    admin.from('lesson_sections').select('id, section_type, title, content, position').eq('lesson_id', session.lesson_id).order('position'),
     admin.from('activities').select('id, lesson_section_id, title, game_template_id, config, max_score, position').eq('lesson_id', session.lesson_id).order('position'),
   ]);
 

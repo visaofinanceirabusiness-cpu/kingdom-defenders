@@ -68,11 +68,15 @@ export async function generarContenidoClase(
 
   const secciones: { section_type: string; title: string; position: number; content: Json }[] = [
     { section_type: 'introduction', title: 'Introducción', position: 0, content: { text: generation.introduction } },
-    { section_type: 'theory', title: 'Explicación teórica', position: 1, content: { text: generation.theory } },
-    { section_type: 'examples', title: 'Ejemplos prácticos', position: 2, content: { text: generation.examples } },
-    { section_type: 'activity', title: 'Actividades interactivas', position: 3, content: {} },
-    { section_type: 'final_challenge', title: 'Desafío final', position: 4, content: {} },
-    { section_type: 'evaluation', title: 'Evaluación', position: 5, content: { text: generation.evaluationSummary } },
+    ...generation.temas.map((tema, i) => ({
+      section_type: 'tema',
+      title: tema.title,
+      position: 1 + i,
+      content: { theory: tema.theory, examples: tema.examples } as Json,
+    })),
+    { section_type: 'activity', title: 'Actividades interactivas', position: 100, content: {} },
+    { section_type: 'final_challenge', title: 'Desafío final', position: 101, content: {} },
+    { section_type: 'evaluation', title: 'Evaluación', position: 102, content: { text: generation.evaluationSummary } },
   ];
 
   const { data: seccionesInsertadas, error: seccionesError } = await supabase

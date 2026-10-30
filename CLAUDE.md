@@ -174,6 +174,57 @@ clase, accesible todo el tiempo vía un círculo flotante, minimizable.
   al cargar la página) para no gastar una conexión de Realtime por
   cada uno que ni la toca.
 
+## Varios temas (teoría+ejemplo) por clase — hecho
+Pedido explícito: una clase puede tener varias explicaciones teóricas
+con su ejemplo asociado, apiladas en desplegables — introducción,
+evaluación y actividades siguen siendo únicas, como antes.
+
+- Nuevo `section_type = 'tema'` en `lesson_sections` — reemplaza el
+  viejo par único `theory`/`examples`. Una clase puede tener N filas
+  `tema`, cada una con `content: {theory, examples, image_url?}`.
+  **Ojo con el CHECK constraint** `lesson_sections_section_type_check`
+  en la base — hay que incluir ahí cada `section_type` nuevo que se
+  use (se nos pasó la primera vez: el código insertaba 'tema' pero la
+  base lo rechazaba en silencio desde el punto de vista del código,
+  con un error de constraint). Migración `permitir_section_type_tema`.
+- `lib/ai/schemas.ts`: `lessonGenerationSchema.temas` (array de
+  `{title, theory, examples}`, 1 a 6) reemplaza los viejos campos
+  `theory`/`examples` sueltos. Prompts (Anthropic/OpenAI) actualizados
+  para pedir que el contenido se divida en sub-temas. Demo también
+  actualizado (2 temas de ejemplo).
+- `lib/lessons/generar-contenido.ts`: inserta una fila `tema` por
+  cada entrada de `generation.temas`, con posiciones 1..N;
+  activity/final_challenge/evaluation corridos a posiciones altas
+  (100/101/102) para no chocar nunca con la cantidad de temas.
+- Editor del docente: los temas se muestran como `<details>` nativos
+  (acordeón sin JS extra) entre Introducción y Evaluación.
+- Jugador del alumno (`ClasePlayer`): cada tema es un paso más en la
+  secuencia (ya era "uno a la vez"), mostrando teoría + ejemplo juntos
+  en la misma tarjeta.
+- Constructor manual: `TemasSection` + `TemaForm`
+  (`guardarTemaAction` — crea si no hay `temaId`, edita si lo hay) —
+  tope de `MAX_TEMAS_POR_CLASE` (10) por clase. Introducción y
+  Evaluación siguen siendo `SeccionForm` de siempre (`SECTION_TYPES`
+  quedó reducido a esos dos).
+- `duplicarLessonAction` no necesitó cambios — ya copiaba filas de
+  `lesson_sections` genéricamente, y el mapeo tipo→id que usa para
+  reubicar actividades solo mira `activity`/`final_challenge` (nunca
+  `tema`), así que da igual que haya una o varias filas `tema`.
+- Migración de datos de la única clase que ya existía en formato
+  viejo (theory+examples sueltos) a un `tema` combinado — hecha a
+  mano por SQL, no por código (no hace falta un script reusable para
+  un caso único).
+
+## Editar y eliminar alumnos — hecho
+- `updateStudentAction`/`deleteStudentAction` (`docente/alumnos/
+  actions.ts`) + página `alumnos/[id]/editar`. Eliminar un alumno
+  borra en cascada sus `sessions`/`student_responses`/`course_members`
+  — confirm() antes, no hay deshacer.
+- Botones en `docente/alumnos` (tarjetas, mismo patrón `DeleteCourseButton`/
+  `DeleteLessonButton`: `variant="card"` ahí, `variant="inline"` en la
+  ficha individual con `redirectAfter` porque si se borra desde la
+  ficha hay que salir de esa página).
+
 ## Estado del proyecto (ver spec completo en el primer prompt del usuario)
 
 **Fase 1 — hecha:**
