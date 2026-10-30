@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { generarCodigoAcceso } from '@/lib/access-code';
 import { createStudentSchema } from '@/lib/validations/student-admin';
+import { chequearLimiteDeAlumnos } from '@/lib/plan/usage';
 
 export type StudentActionState = { error: string } | null;
 
@@ -26,6 +27,11 @@ export async function createStudentAction(_prevState: StudentActionState, formDa
 
   if (!user) {
     return { error: 'Tu sesión expiró — volvé a iniciar sesión.' };
+  }
+
+  const limite = await chequearLimiteDeAlumnos(supabase, user.id);
+  if (!limite.allowed) {
+    return { error: limite.error };
   }
 
   const { error } = await supabase.from('students').insert({

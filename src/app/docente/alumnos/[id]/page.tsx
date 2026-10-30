@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
+type NivelDominio = 'dominado' | 'reforzar' | 'en_progreso';
+
 export default async function AlumnoDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const { id: studentId } = await params;
   const supabase = await createClient();
@@ -26,7 +28,7 @@ export default async function AlumnoDetallePage({ params }: { params: Promise<{ 
 
   const { data: sesiones } = await supabase
     .from('sessions')
-    .select('id, status, total_score, started_at, completed_at, lesson_id, lessons(title, subject, teacher_id)')
+    .select('id, status, total_score, started_at, completed_at, lesson_id, lessons(title, subject, topic, teacher_id)')
     .eq('student_id', studentId)
     .order('started_at', { ascending: false });
 
@@ -36,6 +38,49 @@ export default async function AlumnoDetallePage({ params }: { params: Promise<{ 
   const sesionesDelDocente = (sesiones ?? []).filter((s) => (s.lessons as unknown as { teacher_id: string } | null)?.teacher_id === user.id);
   const completadas = sesionesDelDocente.filter((s) => s.status === 'completed');
   const pendientes = sesionesDelDocente.filter((s) => s.status !== 'completed');
+
+  const lessonIds = [...new Set(sesionesDelDocente.map((s) => s.lesson_id))];
+  const sessionIds = sesionesDelDocente.map((s) => s.id);
+
+  const [{ data: actividadesPorClase }, { data: respuestas }] = await Promise.all([
+    lessonIds.length > 0
+      ? supabase.from('activities').select('lesson_id, max_score').in('lesson_id', lessonIds)
+      : Promise.resolve({ data: [] }),
+    sessionIds.length > 0
+      ? supabase.from('student_responses').select('session_id, is_correct, duration_seconds').in('session_id', sessionIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const maxScorePorClase = new Map<string, number>();
+  for (const a of actividadesPorClase ?? []) {
+    maxScorePorClase.set(a.lesson_id, (maxScorePorClase.get(a.lesson_id) ?? 0) + a.max_score);
+  }
+
+  const respuestasIncorrectas = (respuestas ?? []).filter((r) => r.is_correct === false).length;
+  const duraciones = (respuestas ?? []).map((r) => r.duration_seconds).filter((d): d is number => typeof d === 'number');
+  const duracionPromedio = duraciones.length > 0 ? Math.round(duraciones.reduce((a, b) => a + b, 0) / duraciones.length) : null;
+
+  // "Tema" = el topic de la clase. Se clasifica por el % de la última
+  // sesión completada de ese tema (si lo jugó varias veces, cuenta la
+  // más reciente) — ≥80% dominado, <50% a reforzar, el resto en
+  // progreso. Es una aproximación simple y transparente, no un
+  // análisis de IA (eso queda para una etapa posterior, como se pidió).
+  const temaPorSesion = new Map<string, { nivel: NivelDominio; fecha: string }>();
+  for (const s of completadas) {
+    const lesson = s.lessons as unknown as { topic: string | null } | null;
+    const tema = lesson?.topic;
+    if (!tema) continue;
+    const maxScore = maxScorePorClase.get(s.lesson_id) ?? 0;
+    const porcentaje = maxScore > 0 ? s.total_score / maxScore : 0;
+    const nivel: NivelDominio = porcentaje >= 0.8 ? 'dominado' : porcentaje < 0.5 ? 'reforzar' : 'en_progreso';
+    const fecha = s.completed_at ?? s.started_at;
+    const existente = temaPorSesion.get(tema);
+    if (!existente || fecha > existente.fecha) {
+      temaPorSesion.set(tema, { nivel, fecha });
+    }
+  }
+  const temasDominados = [...temaPorSesion.entries()].filter(([, v]) => v.nivel === 'dominado').map(([t]) => t);
+  const temasAReforzar = [...temaPorSesion.entries()].filter(([, v]) => v.nivel === 'reforzar').map(([t]) => t);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -56,16 +101,57 @@ export default async function AlumnoDetallePage({ params }: { params: Promise<{ 
         </Link>
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      <div className="mt-6 grid gap-4 sm:grid-cols-4">
         <Card className="text-center">
           <p className="text-3xl font-black">{completadas.length}</p>
           <p className="text-sm text-foreground/60">Clases realizadas</p>
         </Card>
         <Card className="text-center">
           <p className="text-3xl font-black">{pendientes.length}</p>
-          <p className="text-sm text-foreground/60">Actividades pendientes</p>
+          <p className="text-sm text-foreground/60">Pendientes</p>
+        </Card>
+        <Card className="text-center">
+          <p className="text-3xl font-black">{respuestasIncorrectas}</p>
+          <p className="text-sm text-foreground/60">Respuestas incorrectas</p>
+        </Card>
+        <Card className="text-center">
+          <p className="text-3xl font-black">{duracionPromedio !== null ? `${duracionPromedio}s` : '—'}</p>
+          <p className="text-sm text-foreground/60">Tiempo promedio</p>
         </Card>
       </div>
+
+      {(temasDominados.length > 0 || temasAReforzar.length > 0) && (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <Card>
+            <h2 className="mb-2 text-sm font-bold text-success-600">✅ Temas dominados</h2>
+            {temasDominados.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {temasDominados.map((t) => (
+                  <Badge key={t} tone="success">
+                    {t}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-foreground/50">Todavía ninguno.</p>
+            )}
+          </Card>
+          <Card>
+            <h2 className="mb-2 text-sm font-bold text-amber-700">⚠️ Para reforzar</h2>
+            {temasAReforzar.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {temasAReforzar.map((t) => (
+                  <Badge key={t} tone="warning">
+                    {t}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-foreground/50">Ninguno por ahora.</p>
+            )}
+          </Card>
+        </div>
+      )}
 
       <Card className="mt-6">
         <h2 className="mb-4 text-lg font-bold">Historial</h2>

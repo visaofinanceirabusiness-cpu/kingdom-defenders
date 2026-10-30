@@ -222,7 +222,7 @@ export async function generarVarianteAction(lessonId: string, nivel: NivelVarian
     return { error: `No se pudo crear la variante: ${lessonError?.message ?? 'error desconocido'}` };
   }
 
-  const resultado = await generarContenidoClase(supabase, variante.id, {
+  const resultado = await generarContenidoClase(supabase, variante.id, user.id, {
     text: material?.raw_text ?? original.topic,
     subject: original.subject,
     topic: original.topic,

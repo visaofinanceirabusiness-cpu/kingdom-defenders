@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { limitsForPlan } from '@/lib/plan/limits';
 
 type Metrica = { label: string; value: number; icon: string; href: string };
 
@@ -47,6 +48,21 @@ export default async function DashboardDocentePage() {
       ? await supabase.from('sessions').select('id', { count: 'exact', head: true }).eq('status', 'completed').in('lesson_id', idsDeClases)
       : { count: 0 };
 
+  const { data: profile } = await supabase.from('profiles').select('plan').eq('id', user.id).maybeSingle();
+  const limites = limitsForPlan(profile?.plan);
+  const inicioDelMes = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)).toISOString().slice(0, 10);
+  const { data: uso } = await supabase
+    .from('ai_usage')
+    .select('generations_count')
+    .eq('teacher_id', user.id)
+    .eq('period_start', inicioDelMes)
+    .maybeSingle();
+  const { count: clasesGuardadasCount } = await supabase
+    .from('lessons')
+    .select('id', { count: 'exact', head: true })
+    .eq('teacher_id', user.id)
+    .in('status', ['ready_for_review', 'published']);
+
   const metricas: Metrica[] = [
     { label: 'Mis cursos', value: cursosCount ?? 0, icon: '📚', href: '/docente/cursos' },
     { label: 'Mis alumnos', value: alumnosCount ?? 0, icon: '🧑‍🎓', href: '/docente/cursos' },
@@ -79,6 +95,20 @@ export default async function DashboardDocentePage() {
         ))}
       </div>
 
+      <Card className="mt-8">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold">Tu plan: {limites.label}</h2>
+          <Link href="/docente/alumnos" className="text-sm font-semibold text-brand-600 hover:underline">
+            Más alumnos o generaciones →
+          </Link>
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <BarraUso label="Generaciones de IA este mes" usado={uso?.generations_count ?? 0} limite={limites.aiGenerationsPerMonth} />
+          <BarraUso label="Alumnos activos" usado={alumnosPropiosCount ?? 0} limite={limites.maxActiveStudents} />
+          <BarraUso label="Clases guardadas" usado={clasesGuardadasCount ?? 0} limite={limites.maxSavedLessons} />
+        </div>
+      </Card>
+
       {(cursosCount ?? 0) === 0 && (
         <Card className="mt-8 flex flex-col items-center gap-3 py-12 text-center">
           <span className="text-4xl">👋</span>
@@ -96,6 +126,28 @@ export default async function DashboardDocentePage() {
           </div>
         </Card>
       )}
+    </div>
+  );
+}
+
+function BarraUso({ label, usado, limite }: { label: string; usado: number; limite: number }) {
+  const porcentaje = limite > 0 ? Math.min(100, Math.round((usado / limite) * 100)) : 0;
+  const cerca = porcentaje >= 90;
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between text-sm">
+        <span className="text-foreground/70">{label}</span>
+        <span className="font-semibold">
+          {usado}/{limite}
+        </span>
+      </div>
+      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-muted">
+        <div
+          className={`h-full rounded-full transition-all ${cerca ? 'bg-amber-500' : 'bg-brand-500'}`}
+          style={{ width: `${porcentaje}%` }}
+        />
+      </div>
     </div>
   );
 }

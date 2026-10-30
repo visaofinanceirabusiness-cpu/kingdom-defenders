@@ -9,7 +9,8 @@ export async function registrarRespuestaAction(
   sessionId: string,
   activityId: string,
   correctas: number,
-  total: number
+  total: number,
+  duracionSegundos?: number
 ): Promise<{ error?: string }> {
   const admin = createAdminClient();
 
@@ -42,6 +43,7 @@ export async function registrarRespuestaAction(
     response: { correctas, total },
     score,
     is_correct: correctas === total,
+    duration_seconds: duracionSegundos ?? null,
   });
 
   if (error) {

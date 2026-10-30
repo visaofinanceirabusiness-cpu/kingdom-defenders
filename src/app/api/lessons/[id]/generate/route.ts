@@ -44,7 +44,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     ? await supabase.from('materials').select('raw_text').eq('id', lesson.material_id).maybeSingle()
     : { data: null };
 
-  const resultado = await generarContenidoClase(supabase, lessonId, {
+  const resultado = await generarContenidoClase(supabase, lessonId, user.id, {
     text: material?.raw_text ?? lesson.topic,
     subject: lesson.subject,
     topic: lesson.topic,

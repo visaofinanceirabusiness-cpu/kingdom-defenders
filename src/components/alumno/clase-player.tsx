@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,7 +41,12 @@ export function ClasePlayer({ sessionId, secciones, actividades }: { sessionId: 
   const [finalizando, setFinalizando] = useState(false);
   const [resultadoFinal, setResultadoFinal] = useState<number | null>(null);
   const pendientesRef = useRef<Promise<unknown>[]>([]);
+  const inicioPasoRef = useRef<number | null>(null);
   const maxScoreTotal = actividades.reduce((acc, a) => acc + a.max_score, 0);
+
+  useEffect(() => {
+    inicioPasoRef.current = Date.now();
+  }, [indice]);
 
   async function avanzar() {
     if (indice + 1 >= pasos.length) {
@@ -56,7 +61,8 @@ export function ClasePlayer({ sessionId, secciones, actividades }: { sessionId: 
   }
 
   function manejarTerminoJuego(actividadId: string, puntaje: number, total: number) {
-    pendientesRef.current.push(registrarRespuestaAction(sessionId, actividadId, puntaje, total));
+    const duracion = inicioPasoRef.current !== null ? Math.round((Date.now() - inicioPasoRef.current) / 1000) : undefined;
+    pendientesRef.current.push(registrarRespuestaAction(sessionId, actividadId, puntaje, total, duracion));
     avanzar();
   }
 

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { aiService } from '@/lib/ai/service';
 import { validateGameConfig } from '@/lib/games/registry';
+import { reservarGeneracionDeIA, chequearLimiteDeClasesGuardadas } from '@/lib/plan/usage';
 import type { ProposedActivity } from '@/lib/ai/schemas';
 import type { Database, Json } from '@/types/database';
 
@@ -21,8 +22,23 @@ export type GenerarContenidoInput = {
 export async function generarContenidoClase(
   supabase: SupabaseClient<Database>,
   lessonId: string,
+  teacherId: string,
   input: GenerarContenidoInput
 ): Promise<{ error: string } | { ok: true }> {
+  const limiteClases = await chequearLimiteDeClasesGuardadas(supabase, teacherId, lessonId);
+  if (!limiteClases.allowed) {
+    return { error: limiteClases.error };
+  }
+
+  // Se reserva ANTES de llamar a la IA (no después de guardar) para
+  // que no haya forma de generar de más llamando a este pipeline
+  // directo — el cupo se gasta aunque la IA después falle, igual que
+  // pasaría con la plata real que cuesta la llamada.
+  const cupo = await reservarGeneracionDeIA(supabase, teacherId);
+  if (!cupo.allowed) {
+    return { error: cupo.error };
+  }
+
   await supabase.from('lessons').update({ status: 'generating' }).eq('id', lessonId);
 
   let generation;

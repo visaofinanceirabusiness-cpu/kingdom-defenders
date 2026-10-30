@@ -185,10 +185,37 @@ generadas por IA. Docentes de nivel secundario, cualquier materia.
 - Biblioteca: las variantes aparecen agrupadas bajo su clase base como
   chips clickeables, en vez de listarse como clases sueltas.
 
-Pendiente de la ampliación (etapas siguientes, en el orden pedido):
-- Seguimiento pedagógico más completo (tiempo de resolución, temas
-  dominados/a reforzar, recomendación de IA para la próxima clase)
-- Límites de uso por plan de suscripción (fijos en código, ver arriba)
+**Ampliación — Seguimiento pedagógico (hecha, versión simple):**
+- `student_responses.duration_seconds`: `ClasePlayer` mide cuánto
+  tarda el alumno en cada actividad (desde que se renderiza el paso
+  hasta que dispara `onTerminar`) y lo manda a `registrarRespuestaAction`.
+- Ficha del alumno (`docente/alumnos/[id]`): suma respuestas
+  incorrectas, tiempo promedio, y clasifica cada `topic` jugado como
+  "dominado" (≥80% de la última sesión completada de ese tema),
+  "a reforzar" (<50%) o en progreso — heurística simple y transparente
+  en código, NO es un análisis de IA (eso se dejó para una etapa
+  posterior, como pidió el usuario explícitamente).
+
+**Ampliación — Límites de plan (hecha):**
+- `profiles.plan` (`free`/`pro`, default `free`) + tabla `ai_usage`
+  (`teacher_id`, `period_start` = primer día del mes, `generations_count`)
+  con policy RLS propia.
+- `lib/plan/limits.ts`: `PLAN_LIMITS` fijo en código (decisión tomada
+  con el usuario) — `free`: 15 generaciones de IA/mes, 5 alumnos
+  activos, 10 clases guardadas; `pro`: 300/100/300. Cambiar un plan es
+  editar ese objeto.
+- `lib/plan/usage.ts`: `reservarGeneracionDeIA` (chequea Y reserva el
+  cupo ANTES de llamar a la IA — nunca después, para que no se pueda
+  esquivar llamando al pipeline directo), `chequearLimiteDeAlumnos`,
+  `chequearLimiteDeClasesGuardadas`. `generarContenidoClase` ahora
+  recibe `teacherId` y corre ambos chequeos (cupo de IA + clases
+  guardadas) antes de generar — duplicar una clase NO pasa por acá,
+  así que nunca gasta cupo de IA (como pedía el requisito).
+- Dashboard: tarjeta "Tu plan" con barras de uso (generaciones de IA
+  del mes, alumnos activos, clases guardadas).
+- Todavía no hay forma de que el docente pase de plan `free` a `pro`
+  desde la UI (no se pidió pago/suscripción todavía) — por ahora se
+  cambia a mano: `update profiles set plan = 'pro' where id = '...'`.
 
 Pendiente (ver spec original de AulaPlay):
 - Resto de los 7 componentes de render de juegos
