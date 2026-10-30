@@ -65,10 +65,10 @@ export default async function DashboardDocentePage() {
 
   const metricas: Metrica[] = [
     { label: 'Mis cursos', value: cursosCount ?? 0, icon: '📚', href: '/docente/cursos' },
-    { label: 'Mis alumnos', value: alumnosCount ?? 0, icon: '🧑‍🎓', href: '/docente/cursos' },
-    { label: 'Clases creadas', value: clasesCount ?? 0, icon: '📝', href: '/docente/clases/nueva' },
-    { label: 'Pendientes de revisión', value: clasesPendientesCount ?? 0, icon: '⏳', href: '/docente/clases/nueva' },
-    { label: 'Actividades realizadas', value: actividadesRealizadasCount ?? 0, icon: '🎮', href: '/docente/cursos' },
+    { label: 'Mis alumnos', value: alumnosCount ?? 0, icon: '🧑‍🎓', href: '/docente/alumnos' },
+    { label: 'Clases creadas', value: clasesCount ?? 0, icon: '📝', href: '/docente/biblioteca' },
+    { label: 'Pendientes de revisión', value: clasesPendientesCount ?? 0, icon: '⏳', href: '/docente/biblioteca' },
+    { label: 'Actividades realizadas', value: actividadesRealizadasCount ?? 0, icon: '🎮', href: '/docente/alumnos' },
   ];
 
   return (

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -15,11 +16,12 @@ const LINKS = [
 
 export function DocenteNav({ teacherName }: { teacherName: string }) {
   const pathname = usePathname();
+  const [menuAbierto, setMenuAbierto] = useState(false);
 
   return (
-    <header className="sticky top-0 z-10 border-b border-border bg-surface/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/docente" className="flex items-center">
+    <header className="sticky top-0 z-20 border-b border-border bg-surface/90 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
+        <Link href="/docente" className="flex items-center" onClick={() => setMenuAbierto(false)}>
           <Image src="/logo-full.png" alt="AulaPlay" width={132} height={46} priority />
         </Link>
 
@@ -43,16 +45,50 @@ export function DocenteNav({ teacherName }: { teacherName: string }) {
 
         <div className="flex items-center gap-3">
           <span className="hidden text-sm font-medium text-foreground/70 sm:inline">👋 {teacherName}</span>
-          <form action={signOutAction}>
-            <button
-              type="submit"
-              className="rounded-lg px-3 py-2 text-sm font-semibold text-foreground/60 hover:bg-surface-muted"
-            >
+          <form action={signOutAction} className="hidden sm:block">
+            <button type="submit" className="rounded-lg px-3 py-2 text-sm font-semibold text-foreground/60 hover:bg-surface-muted">
               Salir
             </button>
           </form>
+          <button
+            type="button"
+            onClick={() => setMenuAbierto((m) => !m)}
+            className="rounded-lg p-2 text-2xl text-foreground/70 hover:bg-surface-muted sm:hidden"
+            aria-label="Abrir menú"
+          >
+            {menuAbierto ? '✕' : '☰'}
+          </button>
         </div>
       </div>
+
+      {menuAbierto && (
+        <nav className="border-t border-border px-4 py-3 sm:hidden">
+          <p className="mb-2 px-1 text-sm font-medium text-foreground/70">👋 {teacherName}</p>
+          <div className="flex flex-col gap-1">
+            {LINKS.map((link) => {
+              const activo = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMenuAbierto(false)}
+                  className={cn(
+                    'rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors',
+                    activo ? 'bg-brand-100 text-brand-700' : 'text-foreground/70 hover:bg-surface-muted'
+                  )}
+                >
+                  {link.icon} {link.label}
+                </Link>
+              );
+            })}
+            <form action={signOutAction}>
+              <button type="submit" className="w-full rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-foreground/70 hover:bg-surface-muted">
+                Salir
+              </button>
+            </form>
+          </div>
+        </nav>
+      )}
     </header>
   );
 }
