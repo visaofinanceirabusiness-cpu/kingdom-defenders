@@ -18,7 +18,14 @@ export default function LandingPage() {
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <Image src="/logo-full.png" alt="AulaPlay" width={150} height={52} priority />
         <nav className="flex items-center gap-3">
-          <Link href="/clase" className="text-sm font-semibold text-foreground/70 hover:text-foreground">
+          <Link
+            href="/clase"
+            className="relative flex items-center gap-1.5 rounded-full border-2 border-brand-400 px-3.5 py-1.5 text-sm font-bold text-brand-700 transition-colors hover:bg-brand-50"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+            </span>
             Soy alumno
           </Link>
           <Link href="/login" className="text-sm font-semibold text-foreground/70 hover:text-foreground">
