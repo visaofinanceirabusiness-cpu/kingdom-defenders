@@ -96,16 +96,11 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
             Editar título/materia/tema →
           </Link>
         </div>
-        <div className="flex items-center gap-3">
-          <a href={`/api/clases/${lessonId}/pdf`} className="font-semibold text-brand-600 hover:underline">
-            📄 Descargar PDF
-          </a>
-          {esManual && !publicada && (
-            <Link href={`/docente/clases/${lessonId}/construir`} className="font-semibold text-brand-600 hover:underline">
-              + Agregar más contenido
-            </Link>
-          )}
-        </div>
+        {esManual && !publicada && (
+          <Link href={`/docente/clases/${lessonId}/construir`} className="font-semibold text-brand-600 hover:underline">
+            + Agregar más contenido
+          </Link>
+        )}
       </div>
 
       {esDemo && (
@@ -117,7 +112,16 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
       {publicada && lesson.access_code && (
         <Card className="mt-6 border-2 border-success-500 bg-success-500/10 text-center">
           <p className="text-sm font-semibold text-success-600">Código de acceso para tus alumnos</p>
-          <p className="mt-1 text-4xl font-black tracking-widest text-brand-700">{lesson.access_code}</p>
+          <div className="mt-1 flex flex-wrap items-center justify-center gap-3">
+            <p className="text-4xl font-black tracking-widest text-brand-700">{lesson.access_code}</p>
+            <a
+              href={`/api/clases/${lessonId}/pdf`}
+              title="Descargar PDF de esta clase"
+              className="rounded-lg border border-success-500 bg-surface px-3 py-2 text-sm font-semibold text-success-600 hover:bg-success-500/10"
+            >
+              📄 PDF
+            </a>
+          </div>
           <Link href={`/docente/clases/${lessonId}/resultados`} className="mt-3 inline-block text-sm font-semibold text-brand-700 hover:underline">
             Ver resultados de mis alumnos →
           </Link>
