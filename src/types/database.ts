@@ -240,6 +240,7 @@ export type Database = {
       lessons: {
         Row: {
           access_code: string | null
+          base_lesson_id: string | null
           course_id: string | null
           created_at: string
           difficulty: string | null
@@ -256,9 +257,11 @@ export type Database = {
           title: string
           topic: string | null
           updated_at: string
+          variant_level: string | null
         }
         Insert: {
           access_code?: string | null
+          base_lesson_id?: string | null
           course_id?: string | null
           created_at?: string
           difficulty?: string | null
@@ -275,9 +278,11 @@ export type Database = {
           title: string
           topic?: string | null
           updated_at?: string
+          variant_level?: string | null
         }
         Update: {
           access_code?: string | null
+          base_lesson_id?: string | null
           course_id?: string | null
           created_at?: string
           difficulty?: string | null
@@ -294,8 +299,16 @@ export type Database = {
           title?: string
           topic?: string | null
           updated_at?: string
+          variant_level?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "lessons_base_lesson_id_fkey"
+            columns: ["base_lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lessons_course_id_fkey"
             columns: ["course_id"]

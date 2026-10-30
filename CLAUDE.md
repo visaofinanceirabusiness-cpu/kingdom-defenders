@@ -167,12 +167,25 @@ generadas por IA. Docentes de nivel secundario, cualquier materia.
   (no editables desde Supabase) cuando se implementen — todavía no
   están implementados, es la siguiente etapa.
 
+**Ampliación — Personalización por nivel (hecha):**
+- `lessons.base_lesson_id` (self-FK, nullable) + `lessons.variant_level`
+  (`basico`/`intermedio`/`avanzado`). Una variante es otra fila de
+  `lessons`, nunca se modifica la original.
+- Pipeline de generación extraído a
+  `lib/lessons/generar-contenido.ts` (lo comparten `api/lessons/[id]/
+  generate` y `generarVarianteAction`) — evita tener la lógica de
+  generar+validar+insertar secciones/actividades duplicada en dos
+  lugares.
+- `generarVarianteAction` (`docente/biblioteca/actions.ts`): toma el
+  resumen/objetivos ya aprobados de la clase original, mapea el nivel
+  a una dificultad (`basico→easy`, `intermedio→medium`,
+  `avanzado→hard`) y le pide a la IA una clase nueva completa para ese
+  nivel — a diferencia de duplicar, esto SÍ consume una generación de
+  IA real (es contenido nuevo, no una copia).
+- Biblioteca: las variantes aparecen agrupadas bajo su clase base como
+  chips clickeables, en vez de listarse como clases sueltas.
+
 Pendiente de la ampliación (etapas siguientes, en el orden pedido):
-- Personalización por nivel (variantes de una clase) — decisión de
-  diseño ya tomada pero no implementada: la variante sería otra fila
-  en `lessons` con `base_lesson_id` (self-FK) y `variant_level`, para
-  reusar toda la infraestructura de secciones/actividades sin tabla
-  paralela
 - Seguimiento pedagógico más completo (tiempo de resolución, temas
   dominados/a reforzar, recomendación de IA para la próxima clase)
 - Límites de uso por plan de suscripción (fijos en código, ver arriba)
