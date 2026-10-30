@@ -410,16 +410,39 @@ la app queda pendiente, por ahora se consulta directo en la tabla.
   `ClasePlayer`, apenas termina de jugar esa sesión (no en
   `ResultadoGuardado`, que es la pantalla de cuando vuelve a entrar
   después — ahí no se pregunta de nuevo).
-- **Docente**: `PizarraFlotante` ahora recibe un prop `rol?:
-  'docente' | 'alumno'` — al tocar "Minimizar" con `rol === 'docente'`
-  y sin feedback previo para esa clase, en vez de minimizar
-  directamente muestra la tarjeta de calificación dentro del mismo
-  panel flotante (reemplaza la toolbar+canvas momentáneamente);
-  recién al enviar/omitir se minimiza de verdad. Solo se pasa
-  `rol="docente"` en los 2 usos del lado del docente (editor y
-  `/docente/sesion/[sessionId]`) — el uso del alumno
-  (`/clase/sesion/[sessionId]`) no pasa `rol`, así nunca le dispara
-  este flujo (el suyo es el de arriba, en `ClasePlayer`).
+- **Docente**: botón explícito "🏁 Finalizar clase" — ver sección de
+  abajo (`src/components/docente/finalizar-clase.tsx`). **Ya NO** se
+  dispara al minimizar la pizarra (primera versión, corregida: el
+  docente puede minimizarla y volver a abrirla varias veces en la
+  misma clase sin que eso signifique que terminó).
+
+## Botón "Finalizar clase" (docente) — hecho
+Pedido explícito: el feedback del docente no debía disparase al
+minimizar la pizarra — tiene que ser un botón separado y explícito.
+
+- `src/components/docente/finalizar-clase.tsx`: botón "🏁 Finalizar
+  clase" en la cabecera de `/docente/clases/[id]/editor` (solo si la
+  clase está publicada — no tiene sentido "finalizar" un borrador) y
+  de `/docente/sesion/[sessionId]`. Si ya calificó esta clase
+  (`yaDioFeedback`), navega directo a `/docente/clases/[id]/resultados`;
+  si no, muestra `FeedbackClase` en un modal (overlay oscuro, no
+  dentro del panel de la pizarra como en la primera versión) y recién
+  al enviar/omitir navega.
+- `PizarraFlotante` volvió a su versión simple: "Minimizar" solo
+  minimiza, sin ningún prop `rol` ni lógica de feedback — ese prop se
+  sacó del componente (quedó en `FinalizarClase` en su lugar).
+
+## Botón "Volver" en la clase del alumno — hecho
+Pedido explícito: así como existe "Siguiente →" para avanzar, hace
+falta un "← Volver" para retroceder, hasta el primer paso (índice 0).
+
+- `ClasePlayer`: fila nueva arriba de la barra de progreso con "←
+  Volver" (deshabilitado en el paso 0) y el contador "N/total".
+  `volver()` solo decrementa `indice` — no vuelve a mandar puntaje de
+  una actividad ya jugada (eso ya se guardó la primera vez que se
+  avanzó con `manejarTerminoJuego`/`registrarRespuestaAction`).
+  Funciona igual para pasos de texto y de juego (la GameRenderer se
+  vuelve a montar al volver a visitarla, sin reenviar resultado).
 
 ## Estado del proyecto (ver spec completo en el primer prompt del usuario)
 

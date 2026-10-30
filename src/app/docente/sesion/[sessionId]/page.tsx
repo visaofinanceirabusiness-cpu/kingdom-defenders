@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PizarraFlotante } from '@/components/pizarra/pizarra-flotante';
 import { PresenciaClase } from '@/components/presencia/presencia-clase';
+import { FinalizarClase } from '@/components/docente/finalizar-clase';
 
 // Vista en vivo del docente para acompañar a un alumno en el momento
 // (clase particular) con la pizarra compartida abierta — la sala de
@@ -53,6 +54,7 @@ export default async function SesionEnVivoDocentePage({ params }: { params: Prom
             <Badge tone={session.status === 'completed' ? 'success' : 'warning'}>{session.status === 'completed' ? 'Completada' : 'En curso'}</Badge>
           </div>
         </div>
+        <FinalizarClase lessonId={lesson.id} volverA={`/docente/clases/${lesson.id}/resultados`} />
       </div>
 
       <PresenciaClase roomId={lesson.id} nombre={perfil?.full_name ?? 'Docente'} rol="docente" />
@@ -65,7 +67,7 @@ export default async function SesionEnVivoDocentePage({ params }: { params: Prom
         </p>
       </Card>
 
-      <PizarraFlotante roomId={lesson.id} nombre={perfil?.full_name ?? 'Docente'} rol="docente" />
+      <PizarraFlotante roomId={lesson.id} nombre={perfil?.full_name ?? 'Docente'} />
     </div>
   );
 }

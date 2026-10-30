@@ -85,6 +85,12 @@ export function ClasePlayer({
     }
   }
 
+  // Solo navega — no vuelve a mandar puntaje de una actividad ya
+  // jugada, eso ya quedó guardado la primera vez que se avanzó.
+  function volver() {
+    if (indice > 0) setIndice(indice - 1);
+  }
+
   function manejarTerminoJuego(actividadId: string, puntaje: number, total: number) {
     const duracion = inicioPasoRef.current !== null ? Math.round((Date.now() - inicioPasoRef.current) / 1000) : undefined;
     pendientesRef.current.push(registrarRespuestaAction(sessionId, actividadId, puntaje, total, duracion));
@@ -136,6 +142,19 @@ export function ClasePlayer({
 
   return (
     <div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={volver}
+          disabled={indice === 0}
+          className="text-sm font-semibold text-foreground/50 hover:text-foreground/80 hover:underline disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:no-underline"
+        >
+          ← Volver
+        </button>
+        <span className="text-xs font-semibold text-foreground/40">
+          {indice + 1}/{pasos.length}
+        </span>
+      </div>
       <div className="mb-4 h-2 overflow-hidden rounded-full bg-surface-muted">
         <div className="h-full rounded-full bg-brand-500 transition-all" style={{ width: `${(indice / pasos.length) * 100}%` }} />
       </div>

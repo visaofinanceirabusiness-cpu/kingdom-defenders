@@ -9,6 +9,7 @@ import { PublishLessonButton } from '@/components/docente/publish-lesson-button'
 import { PizarraFlotante } from '@/components/pizarra/pizarra-flotante';
 import { PresenciaClase } from '@/components/presencia/presencia-clase';
 import { TextoResaltable } from '@/components/texto-resaltable';
+import { FinalizarClase } from '@/components/docente/finalizar-clase';
 
 const TEXTO_SECCION: Record<string, { titulo: string; icono: string }> = {
   introduction: { titulo: 'Introducción', icono: '👋' },
@@ -62,7 +63,7 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
             {esManual ? '→ Ir a construirla' : '← Ir al análisis'}
           </Link>
         </Card>
-        <PizarraFlotante roomId={lessonId} nombre={perfil?.full_name ?? 'Docente'} rol="docente" />
+        <PizarraFlotante roomId={lessonId} nombre={perfil?.full_name ?? 'Docente'} />
       </div>
     );
   }
@@ -99,11 +100,14 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
             Editar título/materia/tema →
           </Link>
         </div>
-        {esManual && !publicada && (
-          <Link href={`/docente/clases/${lessonId}/construir`} className="font-semibold text-brand-600 hover:underline">
-            + Agregar más contenido
-          </Link>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {esManual && !publicada && (
+            <Link href={`/docente/clases/${lessonId}/construir`} className="font-semibold text-brand-600 hover:underline">
+              + Agregar más contenido
+            </Link>
+          )}
+          {publicada && <FinalizarClase lessonId={lessonId} volverA={`/docente/clases/${lessonId}/resultados`} />}
+        </div>
       </div>
 
       <PresenciaClase roomId={lessonId} nombre={perfil?.full_name ?? 'Docente'} rol="docente" />
@@ -244,7 +248,7 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
         </div>
       )}
 
-      <PizarraFlotante roomId={lessonId} nombre={perfil?.full_name ?? 'Docente'} rol="docente" />
+      <PizarraFlotante roomId={lessonId} nombre={perfil?.full_name ?? 'Docente'} />
     </div>
   );
 }
