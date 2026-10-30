@@ -32,19 +32,15 @@ export default async function DashboardDocentePage() {
       ? await supabase.from('course_members').select('id', { count: 'exact', head: true }).in('course_id', courseIds)
       : { count: 0 };
 
+  // No depende de tener cursos creados — una clase puede publicarse y
+  // jugarse sin estar asociada a ningún curso (course_id es opcional
+  // en lessons), así que este conteo no puede quedar atado a
+  // courseIds como el de "Mis alumnos".
+  const idsDeClases = (await supabase.from('lessons').select('id').eq('teacher_id', user.id)).data?.map((l) => l.id) ?? [];
+
   const { count: actividadesRealizadasCount } =
-    courseIds.length > 0
-      ? await supabase
-          .from('sessions')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'completed')
-          .in(
-            'lesson_id',
-            // sub-select implícito: sessions están ligadas a lessons del
-            // propio docente a través de lessons.teacher_id — filtramos
-            // directo por lessons del docente actual.
-            (await supabase.from('lessons').select('id').eq('teacher_id', user.id)).data?.map((l) => l.id) ?? []
-          )
+    idsDeClases.length > 0
+      ? await supabase.from('sessions').select('id', { count: 'exact', head: true }).eq('status', 'completed').in('lesson_id', idsDeClases)
       : { count: 0 };
 
   const metricas: Metrica[] = [
