@@ -94,6 +94,9 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
         <Card className="mt-6 border-2 border-success-500 bg-success-500/10 text-center">
           <p className="text-sm font-semibold text-success-600">Código de acceso para tus alumnos</p>
           <p className="mt-1 text-4xl font-black tracking-widest text-brand-700">{lesson.access_code}</p>
+          <Link href={`/docente/clases/${lessonId}/resultados`} className="mt-3 inline-block text-sm font-semibold text-brand-700 hover:underline">
+            Ver resultados de mis alumnos →
+          </Link>
         </Card>
       )}
 

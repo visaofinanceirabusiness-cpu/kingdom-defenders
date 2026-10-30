@@ -9,22 +9,32 @@ import { TrueOrFalseGame } from './true-or-false-game';
 import { FillInTheBlankGame } from './fill-in-the-blank-game';
 import { triviaConfigSchema, trueOrFalseConfigSchema, fillInTheBlankConfigSchema } from '@/lib/games/schemas';
 
-export function GameRenderer({ gameTemplateId, title, config }: { gameTemplateId: string; title: string; config: unknown }) {
+export function GameRenderer({
+  gameTemplateId,
+  title,
+  config,
+  onTerminar,
+}: {
+  gameTemplateId: string;
+  title: string;
+  config: unknown;
+  onTerminar?: (puntaje: number, total: number) => void;
+}) {
   switch (gameTemplateId) {
     case 'trivia': {
       const parsed = triviaConfigSchema.safeParse(config);
       if (!parsed.success) return <ConfigInvalida mensaje={parsed.error.message} />;
-      return <TriviaGame config={parsed.data} title={title} />;
+      return <TriviaGame config={parsed.data} title={title} onTerminar={onTerminar} />;
     }
     case 'true_or_false': {
       const parsed = trueOrFalseConfigSchema.safeParse(config);
       if (!parsed.success) return <ConfigInvalida mensaje={parsed.error.message} />;
-      return <TrueOrFalseGame config={parsed.data} title={title} />;
+      return <TrueOrFalseGame config={parsed.data} title={title} onTerminar={onTerminar} />;
     }
     case 'fill_in_the_blank': {
       const parsed = fillInTheBlankConfigSchema.safeParse(config);
       if (!parsed.success) return <ConfigInvalida mensaje={parsed.error.message} />;
-      return <FillInTheBlankGame config={parsed.data} title={title} />;
+      return <FillInTheBlankGame config={parsed.data} title={title} onTerminar={onTerminar} />;
     }
     default:
       return (

@@ -5,13 +5,22 @@ import { GameShell } from './game-shell';
 import { cn } from '@/lib/utils';
 import type { GameConfigFor } from '@/lib/games/schemas';
 
-export function TrueOrFalseGame({ config, title }: { config: GameConfigFor<'true_or_false'>; title: string }) {
+export function TrueOrFalseGame({
+  config,
+  title,
+  onTerminar,
+}: {
+  config: GameConfigFor<'true_or_false'>;
+  title: string;
+  onTerminar?: (puntaje: number, total: number) => void;
+}) {
   return (
     <GameShell
       icon="✅"
       title={title}
       instructions={`Decidí si cada afirmación es verdadera o falsa. Son ${config.statements.length} en total.`}
       totalPreguntas={config.statements.length}
+      onTerminar={onTerminar}
     >
       {({ onRespuesta, indice }) => <Afirmacion key={indice} item={config.statements[indice]} onRespuesta={onRespuesta} />}
     </GameShell>

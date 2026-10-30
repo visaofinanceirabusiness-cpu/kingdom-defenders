@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "AulaPlay — Transformá tus clases con IA",
   description: "Plataforma educativa inteligente: convertí cualquier material de estudio en una clase interactiva con juegos y evaluaciones generadas por IA.",
+  icons: { icon: "/logo-icon.png" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

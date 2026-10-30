@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
@@ -15,8 +16,11 @@ export default function LandingPage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-brand-50 via-background to-accent-400/10">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <span className="text-2xl font-black text-brand-700">AulaPlay 🎮</span>
+        <Image src="/logo-full.png" alt="AulaPlay" width={150} height={52} priority />
         <nav className="flex items-center gap-3">
+          <Link href="/clase" className="text-sm font-semibold text-foreground/70 hover:text-foreground">
+            Soy alumno
+          </Link>
           <Link href="/login" className="text-sm font-semibold text-foreground/70 hover:text-foreground">
             Iniciar sesión
           </Link>

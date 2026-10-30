@@ -7,13 +7,22 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { GameConfigFor } from '@/lib/games/schemas';
 
-export function FillInTheBlankGame({ config, title }: { config: GameConfigFor<'fill_in_the_blank'>; title: string }) {
+export function FillInTheBlankGame({
+  config,
+  title,
+  onTerminar,
+}: {
+  config: GameConfigFor<'fill_in_the_blank'>;
+  title: string;
+  onTerminar?: (puntaje: number, total: number) => void;
+}) {
   return (
     <GameShell
       icon="✏️"
       title={title}
       instructions={`Completá el espacio en blanco en cada una de las ${config.items.length} consigna${config.items.length === 1 ? '' : 's'}.`}
       totalPreguntas={config.items.length}
+      onTerminar={onTerminar}
     >
       {({ onRespuesta, indice }) => <Item key={indice} item={config.items[indice]} onRespuesta={onRespuesta} />}
     </GameShell>

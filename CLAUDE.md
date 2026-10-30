@@ -112,16 +112,46 @@ generadas por IA. Docentes de nivel secundario, cualquier materia.
   Contrarreloj ya tienen su schema de configuración listo
   (`lib/games/schemas.ts`), les falta el componente de render.
 
-Pendiente (fases siguientes, ver spec original):
+**Fase 3 — hecha:**
+- Acceso de alumno sin cuenta (`/clase` → `/clase/[codigo]` →
+  `/clase/sesion/[sessionId]`): ingresa el código de 6 de la clase
+  publicada, pone su nombre, y entra a jugar. Crea una fila en
+  `students` (con su propio `access_code` de 8, para uso futuro),
+  en `course_members` si la clase tiene curso, y una `sessions` en
+  `in_progress`.
+- `ClasePlayer` (`src/components/alumno/clase-player.tsx`): arma la
+  secuencia completa de la clase (secciones de texto + actividades)
+  como una serie de "pasos" y la recorre una por una, reusando
+  `GameRenderer` (mismo componente que el preview del docente) con un
+  `onTerminar` nuevo que dispara el guardado de cada respuesta.
+- Puntaje: cada actividad guarda su resultado en `student_responses`
+  (`registrarRespuestaAction`), y al terminar la clase
+  `finalizarSesionAction` SUMA esos puntajes del lado del servidor
+  para cerrar la `sessions` (status `completed` + `total_score`) —
+  nunca se confía en un puntaje calculado en el navegador del alumno.
+- Resultados para el docente (`docente/clases/[id]/resultados`):
+  cuántos alumnos entraron, cuántos completaron, promedio, y el
+  detalle por alumno (nombre + puntaje). Nueva policy de RLS
+  (`rls_select_students_para_docente`) para que el docente pueda ver
+  los nombres de sus alumnos.
+- Todas las rutas de alumno (`/clase/**`) usan
+  `src/lib/supabase/admin.ts` (service role) porque el alumno no
+  tiene sesión de Supabase Auth en el MVP — cada acción valida a mano
+  que el código/sesión/actividad corresponda antes de escribir nada.
+
+Pendiente (ver spec original):
 - Resto de los 7 componentes de render de juegos
 - Edición fina de las secciones de texto generadas (hoy se ven, se
   puede borrar una actividad, pero no hay edición inline del texto de
   introducción/teoría/ejemplos — hay que volver a generar para
   cambiarlos)
-- Fase 3: acceso de alumnos por código, ejecución de juegos con
-  persistencia de resultados (`sessions`/`student_responses`),
-  reportes para el docente
 - Fase 4: pulido, seguridad, responsive, optimización
+- Gamificación de alumno: `student_progress` (tabla ya existe en el
+  esquema) todavía no se actualiza ni se muestra en ningún lado
+- Reintento/reanudación: si un alumno cierra la pestaña a mitad de una
+  clase, el link de esa sesión (`/clase/sesion/[id]`) la retoma donde
+  quedó, pero no hay forma de volver a encontrar ese link si lo perdió
+  (no hay "recordame" ni login de alumno)
 - Generación de imágenes para ilustrar actividades (mencionado por el
   usuario, no implementado — quedaría como un método nuevo en
   `AIProvider`, ej. `generateImage`, con su propio proveedor)

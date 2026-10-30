@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useActionState } from 'react';
 import { registerAction } from '../actions';
 import { Button } from '@/components/ui/button';
@@ -31,8 +32,8 @@ export default function RegistroPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 via-background to-accent-400/10 px-4 py-10">
       <Card className="w-full max-w-md">
-        <Link href="/" className="mb-6 inline-block text-2xl font-black text-brand-700">
-          AulaPlay 🎮
+        <Link href="/" className="mb-6 inline-block">
+          <Image src="/logo-full.png" alt="AulaPlay" width={132} height={46} />
         </Link>
         <h1 className="mb-1 text-2xl font-bold">Creá tu cuenta docente</h1>
         <p className="mb-6 text-foreground/60">Empezá a transformar tus clases en minutos.</p>

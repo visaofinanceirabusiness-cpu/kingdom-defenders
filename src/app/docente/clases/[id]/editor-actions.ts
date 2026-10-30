@@ -2,15 +2,9 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { generarCodigoAcceso } from '@/lib/access-code';
 
 export type EditorActionState = { error: string } | { success: true; accessCode?: string } | null;
-
-function generarCodigoAcceso(): string {
-  // 6 caracteres, sin 0/O/1/I (se confunden fácil al escribirlos a mano
-  // en el pizarrón o dictarlos en voz alta).
-  const alfabeto = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from({ length: 6 }, () => alfabeto[Math.floor(Math.random() * alfabeto.length)]).join('');
-}
 
 export async function deleteActivityAction(lessonId: string, activityId: string): Promise<EditorActionState> {
   const supabase = await createClient();

@@ -5,13 +5,22 @@ import { GameShell } from './game-shell';
 import { cn } from '@/lib/utils';
 import type { GameConfigFor } from '@/lib/games/schemas';
 
-export function TriviaGame({ config, title }: { config: GameConfigFor<'trivia'>; title: string }) {
+export function TriviaGame({
+  config,
+  title,
+  onTerminar,
+}: {
+  config: GameConfigFor<'trivia'>;
+  title: string;
+  onTerminar?: (puntaje: number, total: number) => void;
+}) {
   return (
     <GameShell
       icon="🧠"
       title={title}
       instructions={`Respondé ${config.questions.length} pregunta${config.questions.length === 1 ? '' : 's'} eligiendo la opción correcta.`}
       totalPreguntas={config.questions.length}
+      onTerminar={onTerminar}
     >
       {({ onRespuesta, indice }) => <Pregunta key={indice} pregunta={config.questions[indice]} onRespuesta={onRespuesta} />}
     </GameShell>

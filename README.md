@@ -49,7 +49,11 @@ publicación (código de acceso), y render real de 3 de los 10 tipos de
 juego (Trivia, Verdadero o Falso, Completar). Faltan los otros 7
 renders y la edición inline del texto generado.
 
-- 🚧 Acceso de alumnos por código y ejecución de juegos — próxima fase (Fase 3)
+**Fase 3 — hecha:** acceso de alumno sin cuenta por código (`/clase`),
+juega la clase completa (secciones + actividades) de punta a punta, y
+el docente ve los resultados por alumno (`docente/clases/[id]/resultados`).
+
+- 🚧 Resto de los 7 renders de juego, edición inline del texto, Fase 4 (pulido/seguridad/responsive) — próximas fases
 
 Ver `CLAUDE.md` para el detalle técnico completo y las convenciones del proyecto.
 

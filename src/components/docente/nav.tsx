@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { signOutAction } from '@/app/(auth)/actions';
 import { cn } from '@/lib/utils';
@@ -16,8 +17,8 @@ export function DocenteNav({ teacherName }: { teacherName: string }) {
   return (
     <header className="sticky top-0 z-10 border-b border-border bg-surface/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/docente" className="text-xl font-black text-brand-700">
-          AulaPlay 🎮
+        <Link href="/docente" className="flex items-center">
+          <Image src="/logo-full.png" alt="AulaPlay" width={132} height={46} priority />
         </Link>
 
         <nav className="hidden items-center gap-1 sm:flex">
