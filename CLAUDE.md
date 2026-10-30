@@ -316,33 +316,39 @@ en vivo sobre la pizarra, no solo el dibujo final.
   pasaban a `PresenciaClase`.
 
 ## Resaltador tipo flúor sobre el texto — hecho
-Pedido explícito: poder "pintar en flúor" el texto de la clase, como
-un marcador.
+Pedido explícito: poder "pintar en flúor" el texto de la clase para
+destacarle al otro qué es importante — se definió con el usuario que
+sea EN VIVO y compartido entre docente y alumno (no cada uno el
+suyo), y que no se guarde (si alguien entra solo más tarde, no ve
+nada resaltado — igual que la pizarra).
 
 - `src/components/texto-resaltable.tsx`: reemplaza el `<p
   className="whitespace-pre-line ...">{texto}</p>` de cada párrafo de
   contenido (introducción, teoría/ejemplos de cada tema, evaluación)
-  por `<TextoResaltable texto={...} storageKey={...}
+  por `<TextoResaltable texto={...} storageKey={...} roomId={...}
   className={...} />`. Al seleccionar texto con el mouse dentro del
   párrafo, lo marca con `<mark>` en amarillo flúor; tocar un tramo ya
-  marcado lo quita.
-- A diferencia de la pizarra, esto es **personal y local** — no usa
-  ningún canal de Realtime ni se sincroniza entre docente y alumno a
-  propósito: lo que resalta cada uno es suyo (no tendría sentido que
-  la profe viera subrayado lo que el alumno marcó, o al revés). Se
-  guarda en `localStorage` del navegador, con clave
-  `resaltado:<storageKey>` (`storageKey` = `<seccion.id>-intro` /
-  `-theory` / `-examples` / `-eval` en el editor del docente,
-  `<paso.key>-texto` / `-extra` en `ClasePlayer`), así el resaltado
-  sigue ahí la próxima vez que esa persona entra a la misma clase
-  desde el mismo navegador (no entre dispositivos distintos — es
-  localStorage, no hay tabla nueva).
+  marcado lo quita — y eso se ve del lado del otro al instante.
+- Se sincroniza igual que la pizarra: un canal de broadcast de
+  Supabase Realtime (sin tablas) por párrafo, nombrado
+  `resaltado:<roomId>:<storageKey>` — un canal por párrafo (no uno
+  solo por toda la clase) para no mandar de más; cada párrafo de una
+  clase corta tiene como máximo un puñado, no es un problema de
+  escala. `roomId` = `lessons.id`, mismo criterio que la pizarra y
+  `PresenciaClase`.
+- `storageKey` identifica el párrafo dentro de la clase (no tiene que
+  ver con `localStorage`, es solo el nombre que quedó del diseño
+  anterior): `<seccion.id>-intro` / `-theory` / `-examples` / `-eval`
+  en el editor del docente, `<paso.key>-texto` / `-extra` en
+  `ClasePlayer`.
 - Los rangos se calculan con la Selection/Range API contando
   caracteres desde el inicio del párrafo (`offsetDesdeRange`), no con
   `indexOf(texto seleccionado)`, para no confundirse si la misma
   palabra o frase aparece dos veces en el mismo párrafo. Rangos que
   se superponen al agregar uno nuevo se fusionan en uno solo
   (`fusionarRangos`).
+- `ClasePlayer` ahora recibe un prop `roomId` nuevo (viene de
+  `session.lesson_id` en `/clase/sesion/[sessionId]/page.tsx`).
 - Montado en `/docente/clases/[id]/editor` (los 4 párrafos de
   contenido) y en `ClasePlayer` (alumno, los pasos de tipo `texto` —
   introducción, cada tema, evaluación).

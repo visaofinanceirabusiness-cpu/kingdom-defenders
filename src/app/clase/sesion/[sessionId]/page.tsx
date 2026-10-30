@@ -57,7 +57,7 @@ export default async function SesionPage({ params }: { params: Promise<{ session
         {session.status === 'completed' ? (
           <ResultadoGuardado totalScore={session.total_score} maxScoreTotal={maxScoreTotal} />
         ) : (
-          <ClasePlayer sessionId={session.id} secciones={secciones ?? []} actividades={actividades ?? []} />
+          <ClasePlayer sessionId={session.id} roomId={session.lesson_id} secciones={secciones ?? []} actividades={actividades ?? []} />
         )}
       </div>
 

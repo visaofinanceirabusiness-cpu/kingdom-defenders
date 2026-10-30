@@ -19,7 +19,17 @@ type Actividad = { id: string; lesson_section_id: string | null; title: string; 
 type PasoTexto = { tipo: 'texto'; key: string; icono: string; titulo: string; texto: string; imagenUrl?: string; extraLabel?: string; extra?: string };
 type PasoJuego = { tipo: 'juego'; key: string; actividad: Actividad };
 
-export function ClasePlayer({ sessionId, secciones, actividades }: { sessionId: string; secciones: Seccion[]; actividades: Actividad[] }) {
+export function ClasePlayer({
+  sessionId,
+  roomId,
+  secciones,
+  actividades,
+}: {
+  sessionId: string;
+  roomId: string;
+  secciones: Seccion[];
+  actividades: Actividad[];
+}) {
   const router = useRouter();
   const pasos: (PasoTexto | PasoJuego)[] = [];
 
@@ -133,11 +143,11 @@ export function ClasePlayer({ sessionId, secciones, actividades }: { sessionId: 
             // eslint-disable-next-line @next/next/no-img-element
             <img src={paso.imagenUrl} alt="" className="mb-3 max-h-64 w-full rounded-xl border border-border object-contain" />
           )}
-          <TextoResaltable texto={paso.texto} storageKey={`${paso.key}-texto`} className="whitespace-pre-line text-foreground/80" />
+          <TextoResaltable texto={paso.texto} storageKey={`${paso.key}-texto`} roomId={roomId} className="whitespace-pre-line text-foreground/80" />
           {paso.extra && (
             <>
               <p className="mt-4 mb-1 text-xs font-bold text-foreground/50">{paso.extraLabel}</p>
-              <TextoResaltable texto={paso.extra} storageKey={`${paso.key}-extra`} className="whitespace-pre-line text-foreground/80" />
+              <TextoResaltable texto={paso.extra} storageKey={`${paso.key}-extra`} roomId={roomId} className="whitespace-pre-line text-foreground/80" />
             </>
           )}
           <Button className="mt-6" onClick={avanzar}>

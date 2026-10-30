@@ -1,12 +1,13 @@
 'use client';
 
-// Resaltador tipo "flúor" sobre el texto de una clase — cada uno
-// marca lo que le sirve mientras lee, sin que haga falta ningún
-// canal en vivo (a diferencia de la pizarra, esto es personal: lo
-// que resalta el alumno no lo ve la profe y viceversa). Se guarda en
-// localStorage de este navegador, por sección+campo, así sigue ahí
-// la próxima vez que entre a la misma clase.
-import { useEffect, useRef, useState } from 'react';
+// Resaltador tipo "flúor" sobre el texto de una clase — pensado para
+// que la profe le destaque al alumno qué es importante (o al revés),
+// en vivo, durante la clase. Por eso se sincroniza igual que la
+// pizarra: un canal de broadcast de Supabase Realtime por párrafo
+// (no se guarda en la base — si el alumno entra solo más tarde, no
+// ve nada resaltado, a propósito, pedido así por el usuario).
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
 type Rango = { inicio: number; fin: number };
 
@@ -36,28 +37,44 @@ function fusionarRangos(rangos: Rango[]): Rango[] {
   return resultado;
 }
 
-export function TextoResaltable({ texto, storageKey, className }: { texto: string; storageKey: string; className?: string }) {
-  // Lectura inicial perezosa (no en un efecto) para no disparar un
-  // segundo render apenas monta — storageKey es estable por cada
-  // instancia (una por párrafo), así que alcanza con leer una vez.
-  const [rangos, setRangos] = useState<Rango[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const guardado = localStorage.getItem(`resaltado:${storageKey}`);
-      return guardado ? (JSON.parse(guardado) as Rango[]) : [];
-    } catch {
-      return [];
-    }
-  });
+export function TextoResaltable({ texto, storageKey, roomId, className }: { texto: string; storageKey: string; roomId: string; className?: string }) {
+  const [rangos, setRangos] = useState<Rango[]>([]);
   const contenedorRef = useRef<HTMLParagraphElement>(null);
-
+  const supabase = useMemo(() => createClient(), []);
+  const canalRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const rangosRef = useRef<Rango[]>([]);
   useEffect(() => {
-    try {
-      localStorage.setItem(`resaltado:${storageKey}`, JSON.stringify(rangos));
-    } catch {
-      // Ventana privada o localStorage bloqueado — el resaltado dura solo la visita.
-    }
-  }, [rangos, storageKey]);
+    rangosRef.current = rangos;
+  }, [rangos]);
+
+  // Un canal por párrafo (no uno por clase entera) para no mandar de
+  // más: cada párrafo sincroniza solo sus propios rangos.
+  useEffect(() => {
+    const canal = supabase.channel(`resaltado:${roomId}:${storageKey}`, { config: { broadcast: { self: false } } });
+    canalRef.current = canal;
+
+    canal
+      .on('broadcast', { event: 'estado' }, ({ payload }) => {
+        setRangos(payload.rangos as Rango[]);
+      })
+      .on('broadcast', { event: 'pedir-estado' }, () => {
+        canal.send({ type: 'broadcast', event: 'estado', payload: { rangos: rangosRef.current } });
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          canal.send({ type: 'broadcast', event: 'pedir-estado', payload: {} });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(canal);
+      canalRef.current = null;
+    };
+  }, [roomId, storageKey, supabase]);
+
+  function enviarEstado(nuevosRangos: Rango[]) {
+    canalRef.current?.send({ type: 'broadcast', event: 'estado', payload: { rangos: nuevosRangos } });
+  }
 
   function manejarSeleccion() {
     const seleccion = window.getSelection();
@@ -72,11 +89,15 @@ export function TextoResaltable({ texto, storageKey, className }: { texto: strin
     seleccion.removeAllRanges();
     if (fin <= inicio) return;
 
-    setRangos((prev) => fusionarRangos([...prev, { inicio, fin }]));
+    const nuevos = fusionarRangos([...rangos, { inicio, fin }]);
+    setRangos(nuevos);
+    enviarEstado(nuevos);
   }
 
   function quitarResaltado(objetivo: Rango) {
-    setRangos((prev) => prev.filter((r) => r !== objetivo));
+    const nuevos = rangos.filter((r) => r !== objetivo);
+    setRangos(nuevos);
+    enviarEstado(nuevos);
   }
 
   const partes: { texto: string; resaltado: Rango | null }[] = [];

@@ -153,6 +153,7 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
               <TextoResaltable
                 texto={(seccion.content as { text?: string } | null)?.text ?? ''}
                 storageKey={`${seccion.id}-intro`}
+                roomId={lessonId}
                 className="whitespace-pre-line text-foreground/80"
               />
             </Card>
@@ -181,12 +182,14 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
                         <TextoResaltable
                           texto={contenido?.theory ?? ''}
                           storageKey={`${seccion.id}-theory`}
+                          roomId={lessonId}
                           className="whitespace-pre-line text-foreground/80"
                         />
                         <p className="mt-4 mb-1 text-xs font-bold text-foreground/50">EJEMPLOS</p>
                         <TextoResaltable
                           texto={contenido?.examples ?? ''}
                           storageKey={`${seccion.id}-examples`}
+                          roomId={lessonId}
                           className="whitespace-pre-line text-foreground/80"
                         />
                       </div>
@@ -208,6 +211,7 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
               <TextoResaltable
                 texto={(seccion.content as { text?: string } | null)?.text ?? ''}
                 storageKey={`${seccion.id}-eval`}
+                roomId={lessonId}
                 className="whitespace-pre-line text-foreground/80"
               />
             </Card>
