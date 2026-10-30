@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { Card } from '@/components/ui/card';
 import { ClasePlayer } from '@/components/alumno/clase-player';
 import { PizarraFlotante } from '@/components/pizarra/pizarra-flotante';
+import { PresenciaClase } from '@/components/presencia/presencia-clase';
 
 export default async function SesionPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params;
@@ -50,6 +51,8 @@ export default async function SesionPage({ params }: { params: Promise<{ session
           <h1 className="text-xl font-black text-foreground">{lesson?.title}</h1>
           {student && <span className="text-sm font-semibold text-foreground/60">👤 {student.display_name}</span>}
         </div>
+
+        {student && <PresenciaClase roomId={session.lesson_id} nombre={student.display_name} rol="alumno" />}
 
         {session.status === 'completed' ? (
           <ResultadoGuardado totalScore={session.total_score} maxScoreTotal={maxScoreTotal} />

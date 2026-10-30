@@ -256,6 +256,30 @@ evaluación y actividades siguen siendo únicas, como antes.
   attachment` para que descargue directo, sin pasar por ningún visor.
 - Link "📄 Descargar PDF" en el editor y "PDF" en la biblioteca.
 
+## Quién está conectado ahora — hecho
+Pedido explícito: ver arriba de la clase quiénes están conectados en
+vivo, identificados por nombre (no por IP — más confiable y no
+expone datos de red de nadie).
+
+- `src/components/presencia/presencia-clase.tsx`: usa **Presence**
+  de Supabase Realtime (no broadcast como la pizarra — Presence es la
+  pieza hecha justo para "quién está en esta sala ahora mismo", con
+  sync/join/leave automáticos). Canal propio `presencia:<roomId>`,
+  separado del de la pizarra (`pizarra:<roomId>`) a propósito: tiene
+  que reflejar quién está viendo la clase aunque todavía no haya
+  abierto el pizarrón.
+- `roomId` = `lessons.id`, mismo criterio que la pizarra — así
+  docente (parado en el editor) y alumno (en su sesión) coinciden en
+  la misma sala sin coordinar nada.
+- Cada uno se identifica con su nombre real al conectarse (alumno:
+  `students.display_name`; docente: `profiles.full_name`) + su rol
+  (🧑‍🏫 docente / 🧑‍🎓 alumno) — se renderiza como chips de color (uno
+  por persona, color determinístico por nombre) con un punto verde
+  "En vivo ahora".
+- Montado en `/clase/sesion/[sessionId]` (alumno),
+  `/docente/clases/[id]/editor` y `/docente/sesion/[sessionId]`
+  (docente, las dos pantallas donde ya está la pizarra).
+
 ## Estado del proyecto (ver spec completo en el primer prompt del usuario)
 
 **Fase 1 — hecha:**

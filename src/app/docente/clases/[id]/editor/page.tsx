@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ActivityCard } from '@/components/docente/activity-card';
 import { PublishLessonButton } from '@/components/docente/publish-lesson-button';
 import { PizarraFlotante } from '@/components/pizarra/pizarra-flotante';
+import { PresenciaClase } from '@/components/presencia/presencia-clase';
 
 const TEXTO_SECCION: Record<string, { titulo: string; icono: string }> = {
   introduction: { titulo: 'Introducción', icono: '👋' },
@@ -33,9 +34,10 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
     notFound();
   }
 
-  const [{ data: secciones }, { data: actividades }] = await Promise.all([
+  const [{ data: secciones }, { data: actividades }, { data: perfil }] = await Promise.all([
     supabase.from('lesson_sections').select('id, section_type, title, content, position').eq('lesson_id', lessonId).order('position'),
     supabase.from('activities').select('id, lesson_section_id, title, game_template_id, config, position').eq('lesson_id', lessonId).order('position'),
+    supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
   ]);
 
   if (!secciones || secciones.length === 0) {
@@ -102,6 +104,8 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
           </Link>
         )}
       </div>
+
+      <PresenciaClase roomId={lessonId} nombre={perfil?.full_name ?? 'Docente'} rol="docente" />
 
       {esDemo && (
         <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">

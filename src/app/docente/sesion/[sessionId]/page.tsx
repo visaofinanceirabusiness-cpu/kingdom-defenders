@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PizarraFlotante } from '@/components/pizarra/pizarra-flotante';
+import { PresenciaClase } from '@/components/presencia/presencia-clase';
 
 // Vista en vivo del docente para acompañar a un alumno en el momento
 // (clase particular) con la pizarra compartida abierta — la sala de
@@ -32,7 +33,10 @@ export default async function SesionEnVivoDocentePage({ params }: { params: Prom
     notFound();
   }
 
-  const { data: student } = await supabase.from('students').select('display_name').eq('id', session.student_id).maybeSingle();
+  const [{ data: student }, { data: perfil }] = await Promise.all([
+    supabase.from('students').select('display_name').eq('id', session.student_id).maybeSingle(),
+    supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
+  ]);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -50,6 +54,8 @@ export default async function SesionEnVivoDocentePage({ params }: { params: Prom
           </div>
         </div>
       </div>
+
+      <PresenciaClase roomId={lesson.id} nombre={perfil?.full_name ?? 'Docente'} rol="docente" />
 
       <Card className="mt-6">
         <p className="text-sm text-foreground/60">
