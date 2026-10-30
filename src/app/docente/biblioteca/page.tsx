@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { AsignarSesionButton } from '@/components/docente/asignar-sesion-button';
 import { DuplicarLessonButton } from '@/components/docente/duplicar-lesson-button';
 import { GenerarVarianteButton } from '@/components/docente/generar-variante-button';
+import { DeleteLessonButton } from '@/components/docente/delete-lesson-button';
 
 const LABEL_NIVEL: Record<string, string> = { basico: 'Básico', intermedio: 'Intermedio', avanzado: 'Avanzado' };
 
@@ -61,9 +62,13 @@ export default async function BibliotecaPage() {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Link href={`/docente/clases/${clase.id}/editor`} className="text-sm font-semibold text-brand-600 hover:underline">
-                      Ver / editar
+                      Ver / jugar
+                    </Link>
+                    <Link href={`/docente/clases/${clase.id}/editar`} className="text-sm font-semibold text-brand-600 hover:underline">
+                      Editar datos
                     </Link>
                     <DuplicarLessonButton lessonId={clase.id} />
+                    <DeleteLessonButton lessonId={clase.id} lessonTitle={clase.title} />
                   </div>
                 </div>
 

@@ -92,6 +92,9 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
             <Badge tone={publicada ? 'success' : 'warning'}>{publicada ? '✅ Publicada' : 'Borrador'}</Badge>
             {esManual && <Badge tone="accent">✍️ Hecha a mano</Badge>}
           </div>
+          <Link href={`/docente/clases/${lessonId}/editar`} className="mt-2 inline-block text-xs font-semibold text-brand-600 hover:underline">
+            Editar título/materia/tema →
+          </Link>
         </div>
         {esManual && !publicada && (
           <Link href={`/docente/clases/${lessonId}/construir`} className="font-semibold text-brand-600 hover:underline">

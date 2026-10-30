@@ -134,6 +134,9 @@ export function ClasePlayer({ sessionId, secciones, actividades }: { sessionId: 
             config={paso.actividad.config}
             onTerminar={(puntaje, total) => manejarTerminoJuego(paso.actividad.id, puntaje, total)}
           />
+          <button type="button" onClick={avanzar} className="mt-3 text-sm font-semibold text-foreground/50 hover:text-foreground/80 hover:underline">
+            Saltar esta actividad →
+          </button>
         </div>
       )}
     </div>

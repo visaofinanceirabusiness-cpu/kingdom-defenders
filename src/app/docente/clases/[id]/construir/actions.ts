@@ -146,6 +146,16 @@ export async function agregarActividadAction(
     return { error: 'Clase no encontrada.' };
   }
 
+  const { count: cantidadDeEsteTipo } = await supabase
+    .from('activities')
+    .select('id', { count: 'exact', head: true })
+    .eq('lesson_id', lessonId)
+    .eq('game_template_id', gameType);
+
+  if ((cantidadDeEsteTipo ?? 0) >= 5) {
+    return { error: 'Ya tenés el máximo de 5 actividades de este tipo en esta clase.' };
+  }
+
   const seccionId = await obtenerOcrearSeccionActividades(supabase, lessonId);
   if (typeof seccionId !== 'string') {
     return seccionId;

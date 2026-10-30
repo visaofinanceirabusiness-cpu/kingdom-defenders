@@ -70,6 +70,29 @@ export class DemoProvider implements AIProvider {
             ],
           },
         },
+        {
+          gameType: 'memory_match',
+          title: `Memotest — ${input.topic}`,
+          config: {
+            pairs: [
+              { a: '(Ejemplo demo) Concepto A', b: 'Definición A' },
+              { a: '(Ejemplo demo) Concepto B', b: 'Definición B' },
+              { a: '(Ejemplo demo) Concepto C', b: 'Definición C' },
+            ],
+          },
+        },
+        {
+          gameType: 'order',
+          title: `Ordenar — ${input.topic}`,
+          config: {
+            instruction: `(Ejemplo demo) Ordená estos pasos relacionados con ${input.topic}.`,
+            items: [
+              { label: 'Paso de ejemplo 1', correct_position: 0 },
+              { label: 'Paso de ejemplo 2', correct_position: 1 },
+              { label: 'Paso de ejemplo 3', correct_position: 2 },
+            ],
+          },
+        },
       ],
       finalChallenge: {
         gameType: 'fill_in_the_blank',

@@ -42,7 +42,7 @@ export const GAME_TYPE_IDS = Object.keys(GAME_DEFINITIONS) as GameTypeId[];
 // catálogo (memory_match, relate, order, roulette, escape_room, race,
 // time_challenge) ya tiene su schema de configuración listo, falta
 // solo el componente visual.
-export const RENDERABLE_GAME_TYPE_IDS: GameTypeId[] = ['trivia', 'true_or_false', 'fill_in_the_blank'];
+export const RENDERABLE_GAME_TYPE_IDS: GameTypeId[] = ['trivia', 'true_or_false', 'fill_in_the_blank', 'memory_match', 'order'];
 
 export function isValidGameType(id: string): id is GameTypeId {
   return id in GAME_DEFINITIONS;

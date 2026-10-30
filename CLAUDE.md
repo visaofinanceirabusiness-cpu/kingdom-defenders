@@ -105,6 +105,42 @@ de IA configurada, con el docente armando la clase 100% a mano
   del plan (se chequea al crearla) — NO cuenta contra el límite de
   generaciones de IA, porque no gasta ninguna.
 
+## Más variedad de juegos + editar/eliminar — hecho
+- 2 juegos nuevos renderizables: **Memotest** (`memory-match-game.tsx`)
+  y **Ordenar** (`order-game.tsx`) — no usan `GameShell` (ese
+  componente asume N preguntas sí/no en secuencia; estos son un solo
+  tablero/lista), tienen su propio intro/juego/resultado pero
+  terminan igual llamando a `onTerminar(puntaje, total)`. Sumados a
+  `RENDERABLE_GAME_TYPE_IDS`, al `GameRenderer`, a `PROPOSED_GAME_TYPES`
+  (IA) y al constructor manual.
+- La IA ya no tiende a generar "una de cada tipo": `activities` pasó
+  de max 4 a max 10, con un `.refine()` que no deja más de 5 del mismo
+  `gameType` — el prompt (Anthropic y OpenAI) ahora pide variedad, no
+  cantidad, y aclara que las actividades son optativas para el alumno.
+- Constructor manual: el selector de tipo de juego ahora tiene 5
+  pestañas (antes 3) y cada una se deshabilita sola al llegar a 5
+  actividades de ese tipo en la clase — `agregarActividadAction`
+  repite el mismo chequeo del lado del servidor (nunca confiar solo en
+  el disable del cliente).
+- `ClasePlayer`: cada actividad tiene un link "Saltar esta
+  actividad →" — saltear no llama a `registrarRespuestaAction`, así
+  que no suma ni resta puntaje, simplemente no es obligatoria.
+
+## Editar y eliminar cursos/clases — hecho
+- `updateCourseAction`/`updateLessonMetaAction` (edita solo datos
+  básicos — nombre/materia/tema/año/dificultad/curso asignado; el
+  CONTENIDO de una clase se edita desde `construir/` o regenerando,
+  no desde acá) + páginas `cursos/[id]/editar` y `clases/[id]/editar`.
+- `deleteCourseAction`/`deleteLessonAction` + `DeleteCourseButton`/
+  `DeleteLessonButton` (confirm() antes de llamar, no hay deshacer).
+  Borrar un curso NO borra sus clases/materiales (quedan "sin curso",
+  `course_id` se pone en null por la FK) — solo se pierde la
+  organización. Borrar una clase SÍ borra en cascada sus secciones,
+  actividades y sesiones (con los resultados de los alumnos).
+- Botones disponibles en: `docente/cursos` (tarjetas), `docente/
+  cursos/[id]` (editar/eliminar el curso + cada clase del curso),
+  `docente/biblioteca` (editar/eliminar cada clase).
+
 ## Estado del proyecto (ver spec completo en el primer prompt del usuario)
 
 **Fase 1 — hecha:**

@@ -7,6 +7,7 @@ import { SeccionForm } from '@/components/docente/seccion-form';
 import { AgregarActividadForm } from '@/components/docente/agregar-actividad-form';
 import { ActivityCard } from '@/components/docente/activity-card';
 import { SECTION_TYPES, type SectionType } from '@/lib/validations/lesson-manual';
+import type { GameTypeId } from '@/lib/games/schemas';
 
 export default async function ConstruirClasePage({ params }: { params: Promise<{ id: string }> }) {
   const { id: lessonId } = await params;
@@ -34,6 +35,12 @@ export default async function ConstruirClasePage({ params }: { params: Promise<{
   ]);
 
   const seccionPorTipo = new Map((secciones ?? []).map((s) => [s.section_type, s]));
+
+  const cantidadPorTipo: Partial<Record<GameTypeId, number>> = {};
+  for (const a of actividades ?? []) {
+    const tipo = a.game_template_id as GameTypeId;
+    cantidadPorTipo[tipo] = (cantidadPorTipo[tipo] ?? 0) + 1;
+  }
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -73,7 +80,7 @@ export default async function ConstruirClasePage({ params }: { params: Promise<{
         {(actividades ?? []).map((a) => (
           <ActivityCard key={a.id} lessonId={lessonId} activity={a} />
         ))}
-        <AgregarActividadForm lessonId={lessonId} />
+        <AgregarActividadForm lessonId={lessonId} cantidadPorTipo={cantidadPorTipo} />
       </div>
 
       <Card className="mt-8 flex flex-wrap items-center justify-between gap-3">

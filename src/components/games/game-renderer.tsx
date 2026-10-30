@@ -7,7 +7,15 @@
 import { TriviaGame } from './trivia-game';
 import { TrueOrFalseGame } from './true-or-false-game';
 import { FillInTheBlankGame } from './fill-in-the-blank-game';
-import { triviaConfigSchema, trueOrFalseConfigSchema, fillInTheBlankConfigSchema } from '@/lib/games/schemas';
+import { MemoryMatchGame } from './memory-match-game';
+import { OrderGame } from './order-game';
+import {
+  triviaConfigSchema,
+  trueOrFalseConfigSchema,
+  fillInTheBlankConfigSchema,
+  memoryMatchConfigSchema,
+  orderConfigSchema,
+} from '@/lib/games/schemas';
 
 export function GameRenderer({
   gameTemplateId,
@@ -35,6 +43,16 @@ export function GameRenderer({
       const parsed = fillInTheBlankConfigSchema.safeParse(config);
       if (!parsed.success) return <ConfigInvalida mensaje={parsed.error.message} />;
       return <FillInTheBlankGame config={parsed.data} title={title} onTerminar={onTerminar} />;
+    }
+    case 'memory_match': {
+      const parsed = memoryMatchConfigSchema.safeParse(config);
+      if (!parsed.success) return <ConfigInvalida mensaje={parsed.error.message} />;
+      return <MemoryMatchGame config={parsed.data} title={title} onTerminar={onTerminar} />;
+    }
+    case 'order': {
+      const parsed = orderConfigSchema.safeParse(config);
+      if (!parsed.success) return <ConfigInvalida mensaje={parsed.error.message} />;
+      return <OrderGame config={parsed.data} title={title} onTerminar={onTerminar} />;
     }
     default:
       return (

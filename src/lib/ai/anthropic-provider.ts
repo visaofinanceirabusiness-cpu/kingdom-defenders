@@ -99,25 +99,27 @@ ${input.text.slice(0, 12000)}
   "examples": "2-3 ejemplos prácticos resueltos",
   "activities": [
     {
-      "gameType": "trivia" | "true_or_false" | "fill_in_the_blank",
+      "gameType": "trivia" | "true_or_false" | "fill_in_the_blank" | "memory_match" | "order",
       "title": "título de la actividad",
       "config": { ... configuración específica del tipo de juego, ver abajo ... }
     }
   ],
   "finalChallenge": {
-    "gameType": "trivia" | "true_or_false" | "fill_in_the_blank",
+    "gameType": "trivia" | "true_or_false" | "fill_in_the_blank" | "memory_match" | "order",
     "title": "título del desafío final (más difícil que las actividades anteriores)",
     "config": { ... }
   },
   "evaluationSummary": "breve resumen de qué evalúa esta clase y cómo"
 }
 
-Generá entre 2 y 4 actividades (no solo una), todas del tema de la clase, variando el gameType cuando tenga sentido.
+Generá entre 2 y 8 actividades (no solo una), todas del tema de la clase. Todas son optativas para el alumno, así que priorizá variedad de gameType por sobre cantidad — está bien repetir un tipo más de una vez si tiene sentido, pero nunca más de 5 veces el mismo.
 
 Formato de "config" según gameType:
 - trivia: { "duration_seconds": number, "questions": [{ "question": string, "options": string[] (2 a 6), "correct_answer": string (debe estar en options), "explanation": string }] }
 - true_or_false: { "statements": [{ "statement": string, "is_true": boolean, "explanation": string }] }
 - fill_in_the_blank: { "items": [{ "text_with_blank": string (con "___" marcando el espacio), "correct_answer": string, "hints": string[] }] }
+- memory_match: { "pairs": [{ "a": string, "b": string }] (mínimo 3 pares — conceptos relacionados, ej. término/definición) }
+- order: { "instruction": string, "items": [{ "label": string, "correct_position": number (0 en adelante, el orden correcto) }] (mínimo 2) }
 
 Datos de la clase:
 - Materia: ${input.subject}
