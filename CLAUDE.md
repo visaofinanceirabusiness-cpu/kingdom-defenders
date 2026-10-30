@@ -166,6 +166,24 @@ clase, accesible todo el tiempo vía un círculo flotante, minimizable.
   sincroniza, se puede borrar con la goma (por cercanía al punto
   donde se empezó a escribir, no mide el ancho real del texto) y
   queda fijo — no se puede volver a editar el contenido después.
+  **Bug encontrado y arreglado:** el textarea se creaba pero perdía el
+  foco al instante (el usuario reportó "lo tildo pero no se crea el
+  cuadro") — el `mousedown` original cae sobre el `<canvas>`, que no
+  es un elemento enfocable, y la acción por defecto del navegador es
+  devolverle el foco al `body` justo después de que React monta y
+  enfoca el textarea (carrera entre el `autoFocus` y el propio
+  navegador). Se arregla con `e.preventDefault()` en el
+  `onPointerDown` cuando la herramienta es `texto` — verificado con un
+  script de Playwright contra un dev server real (no alcanza con
+  mirar el código: hay que chequear qué elemento tiene el foco después
+  del mousedown).
+- **Emoji** (pedido explícito: "una serie de emojis, unos 6 bien
+  expresivos"): paleta fija de 6 (`EMOJIS` en el componente — 😀 😂 😮
+  👏 🎉 ❤️), aparece en la toolbar solo cuando la herramienta "😊
+  Emoji" está activa. A diferencia de texto, no hay edición: tocar el
+  canvas lo coloca ahí mismo al toque (`tipo: 'emoji'`, mismo patrón
+  de sincronización/borrado que texto, letra más grande —
+  `TAMANO_EMOJI`, 36px vs 22px del texto).
 - **NO se persiste en la base** — es "en vivo" literal, no un archivo:
   se sincroniza con un canal de Supabase Realtime **broadcast** (no
   usa tablas ni RLS) nombrado `pizarra:${roomId}`, con `roomId` =

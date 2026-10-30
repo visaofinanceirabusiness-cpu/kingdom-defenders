@@ -21,12 +21,15 @@ type Linea = ElementoBase & { tipo: 'linea'; a: Punto; b: Punto };
 type Forma = ElementoBase & { tipo: 'rectangulo' | 'elipse' | 'triangulo'; a: Punto; b: Punto };
 type Angulo = ElementoBase & { tipo: 'angulo'; vertice: Punto; puntoA: Punto; puntoB: Punto };
 type TextoElemento = ElementoBase & { tipo: 'texto'; punto: Punto; contenido: string };
-type Elemento = Trazo | Linea | Forma | Angulo | TextoElemento;
+type EmojiElemento = ElementoBase & { tipo: 'emoji'; punto: Punto; contenido: string };
+type Elemento = Trazo | Linea | Forma | Angulo | TextoElemento | EmojiElemento;
 
 type Fondo = 'blanco' | 'cuadriculado' | 'renglones';
-type Herramienta = 'lapiz' | 'linea' | 'rectangulo' | 'elipse' | 'triangulo' | 'angulo' | 'texto' | 'goma';
+type Herramienta = 'lapiz' | 'linea' | 'rectangulo' | 'elipse' | 'triangulo' | 'angulo' | 'texto' | 'emoji' | 'goma';
 
 const TAMANO_TEXTO = 22;
+const TAMANO_EMOJI = 36;
+const EMOJIS = ['😀', '😂', '😮', '👏', '🎉', '❤️'];
 const COLORES = ['#1f2937', '#dc2626', '#2563eb', '#16a34a', '#d97706'];
 const FONDOS: Fondo[] = ['blanco', 'cuadriculado', 'renglones'];
 const LABEL_FONDO: Record<Fondo, string> = { blanco: '⬜ Blanca', cuadriculado: '▦ Cuadriculada', renglones: '☰ Renglones' };
@@ -38,6 +41,7 @@ const LABEL_HERRAMIENTA: Record<Herramienta, string> = {
   triangulo: '🔺 Triángulo',
   angulo: '📐 Ángulo',
   texto: '🔤 Texto',
+  emoji: '😊 Emoji',
   goma: '🧽 Borrar',
 };
 
@@ -60,7 +64,7 @@ function distanciaAElemento(p: Punto, el: Elemento): number {
   if (el.tipo === 'linea') return distanciaPuntoSegmento(p, el.a, el.b);
   if (el.tipo === 'angulo') return Math.min(distanciaPuntoSegmento(p, el.vertice, el.puntoA), distanciaPuntoSegmento(p, el.vertice, el.puntoB));
   // Texto: distancia al punto de anclaje (esquina superior izquierda) — no medimos el ancho real sin el canvas acá, pero alcanza para "tocar cerca del texto para borrar".
-  if (el.tipo === 'texto') return Math.hypot(p.x - el.punto.x, p.y - el.punto.y);
+  if (el.tipo === 'texto' || el.tipo === 'emoji') return Math.hypot(p.x - el.punto.x, p.y - el.punto.y);
   // Formas: distancia al contorno del rectángulo que las contiene — simple y suficiente para "tocar para borrar".
   const x1 = Math.min(el.a.x, el.b.x);
   const x2 = Math.max(el.a.x, el.b.x);
@@ -150,6 +154,11 @@ function dibujarElemento(ctx: CanvasRenderingContext2D, el: Elemento, w: number,
     ctx.textBaseline = 'top';
     const lineHeight = TAMANO_TEXTO * 1.25;
     el.contenido.split('\n').forEach((linea, i) => ctx.fillText(linea, p.x, p.y + i * lineHeight));
+  } else if (el.tipo === 'emoji') {
+    const p = px(el.punto);
+    ctx.font = `${TAMANO_EMOJI}px sans-serif`;
+    ctx.textBaseline = 'top';
+    ctx.fillText(el.contenido, p.x, p.y);
   }
 }
 
@@ -161,6 +170,7 @@ export function PizarraFlotante({ roomId, nombre = 'Alguien' }: { roomId: string
   const [elementos, setElementos] = useState<Elemento[]>([]);
   const [cursoresRemotos, setCursoresRemotos] = useState<Record<string, CursorRemoto>>({});
   const [textoEditando, setTextoEditando] = useState<{ punto: Punto; valor: string } | null>(null);
+  const [emojiSeleccionado, setEmojiSeleccionado] = useState(EMOJIS[0]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contenedorRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -281,8 +291,22 @@ export function PizarraFlotante({ roomId, nombre = 'Alguien' }: { roomId: string
     }
 
     if (herramienta === 'texto') {
+      // El canvas no es un elemento "enfocable" — sin esto, el propio
+      // navegador le devuelve el foco al body apenas se crea el
+      // textarea (reacción por defecto al mousedown sobre algo no
+      // enfocable), y el blur dispara confirmarTexto antes de que el
+      // usuario llegue a escribir nada.
+      e.preventDefault();
       confirmandoTextoRef.current = false;
       setTextoEditando({ punto: p, valor: '' });
+      return;
+    }
+
+    if (herramienta === 'emoji') {
+      const nuevo: EmojiElemento = { id: crypto.randomUUID(), tipo: 'emoji', color, punto: p, contenido: emojiSeleccionado };
+      const nuevos = [...elementos, nuevo];
+      setElementos(nuevos);
+      enviarEstado(nuevos, fondo);
       return;
     }
 
@@ -477,6 +501,25 @@ export function PizarraFlotante({ roomId, nombre = 'Alguien' }: { roomId: string
             style={{ backgroundColor: c }}
           />
         ))}
+        {herramienta === 'emoji' && (
+          <>
+            <div className="mx-1 h-5 w-px bg-border" />
+            {EMOJIS.map((em) => (
+              <button
+                key={em}
+                type="button"
+                onClick={() => setEmojiSeleccionado(em)}
+                title={em}
+                className={cn(
+                  'flex h-7 w-7 items-center justify-center rounded-lg text-lg',
+                  emojiSeleccionado === em ? 'bg-brand-600/20 ring-2 ring-brand-600' : 'hover:bg-surface-muted'
+                )}
+              >
+                {em}
+              </button>
+            ))}
+          </>
+        )}
         <div className="mx-1 h-5 w-px bg-border" />
         <button type="button" onClick={cambiarFondo} className="rounded-lg bg-surface-muted px-2 py-1 text-xs font-semibold text-foreground/70 hover:bg-brand-50">
           {LABEL_FONDO[fondo]}
