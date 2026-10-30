@@ -149,9 +149,23 @@ clase, accesible todo el tiempo vía un círculo flotante, minimizable.
   cliente autocontenido: botón circular flotante (`position: fixed`)
   que abre/cierra un panel con toolbar + `<canvas>`. Herramientas:
   lápiz (trazo libre), línea, rectángulo, círculo, triángulo, ángulo
-  (3 clics: vértice + dos rayos, calcula y muestra los grados) y goma
-  (click sobre un elemento para borrarlo, por distancia punto-segmento,
-  no por píxel). Fondo cicla blanco/cuadriculado/renglones.
+  (3 clics: vértice + dos rayos, calcula y muestra los grados), texto
+  y goma (click sobre un elemento para borrarlo, por distancia
+  punto-segmento, no por píxel). Fondo cicla
+  blanco/cuadriculado/renglones.
+- **Texto** (pedido explícito: escribir números/palabras con
+  precisión en vez de dibujarlos a pulso): clic con la herramienta de
+  texto activa abre un `<textarea>` flotante posicionado ahí mismo
+  (overlay absoluto sobre `contenedorRef`, no es parte del canvas
+  todavía); Enter o tocar afuera lo confirma y lo "quema" al canvas
+  como un elemento más (`tipo: 'texto'`, se dibuja con
+  `ctx.fillText`, reparte líneas con `\n`); Escape lo descarta.
+  `confirmandoTextoRef` evita duplicarlo si el blur del textarea se
+  dispara justo después del Enter (ambos intentan confirmar la misma
+  edición). Una vez quemado al canvas es un elemento más: se
+  sincroniza, se puede borrar con la goma (por cercanía al punto
+  donde se empezó a escribir, no mide el ancho real del texto) y
+  queda fijo — no se puede volver a editar el contenido después.
 - **NO se persiste en la base** — es "en vivo" literal, no un archivo:
   se sincroniza con un canal de Supabase Realtime **broadcast** (no
   usa tablas ni RLS) nombrado `pizarra:${roomId}`, con `roomId` =

@@ -20,11 +20,13 @@ type Trazo = ElementoBase & { tipo: 'trazo'; puntos: Punto[] };
 type Linea = ElementoBase & { tipo: 'linea'; a: Punto; b: Punto };
 type Forma = ElementoBase & { tipo: 'rectangulo' | 'elipse' | 'triangulo'; a: Punto; b: Punto };
 type Angulo = ElementoBase & { tipo: 'angulo'; vertice: Punto; puntoA: Punto; puntoB: Punto };
-type Elemento = Trazo | Linea | Forma | Angulo;
+type TextoElemento = ElementoBase & { tipo: 'texto'; punto: Punto; contenido: string };
+type Elemento = Trazo | Linea | Forma | Angulo | TextoElemento;
 
 type Fondo = 'blanco' | 'cuadriculado' | 'renglones';
-type Herramienta = 'lapiz' | 'linea' | 'rectangulo' | 'elipse' | 'triangulo' | 'angulo' | 'goma';
+type Herramienta = 'lapiz' | 'linea' | 'rectangulo' | 'elipse' | 'triangulo' | 'angulo' | 'texto' | 'goma';
 
+const TAMANO_TEXTO = 22;
 const COLORES = ['#1f2937', '#dc2626', '#2563eb', '#16a34a', '#d97706'];
 const FONDOS: Fondo[] = ['blanco', 'cuadriculado', 'renglones'];
 const LABEL_FONDO: Record<Fondo, string> = { blanco: '⬜ Blanca', cuadriculado: '▦ Cuadriculada', renglones: '☰ Renglones' };
@@ -35,6 +37,7 @@ const LABEL_HERRAMIENTA: Record<Herramienta, string> = {
   elipse: '⬭ Círculo',
   triangulo: '🔺 Triángulo',
   angulo: '📐 Ángulo',
+  texto: '🔤 Texto',
   goma: '🧽 Borrar',
 };
 
@@ -56,6 +59,8 @@ function distanciaAElemento(p: Punto, el: Elemento): number {
   }
   if (el.tipo === 'linea') return distanciaPuntoSegmento(p, el.a, el.b);
   if (el.tipo === 'angulo') return Math.min(distanciaPuntoSegmento(p, el.vertice, el.puntoA), distanciaPuntoSegmento(p, el.vertice, el.puntoB));
+  // Texto: distancia al punto de anclaje (esquina superior izquierda) — no medimos el ancho real sin el canvas acá, pero alcanza para "tocar cerca del texto para borrar".
+  if (el.tipo === 'texto') return Math.hypot(p.x - el.punto.x, p.y - el.punto.y);
   // Formas: distancia al contorno del rectángulo que las contiene — simple y suficiente para "tocar para borrar".
   const x1 = Math.min(el.a.x, el.b.x);
   const x2 = Math.max(el.a.x, el.b.x);
@@ -139,6 +144,12 @@ function dibujarElemento(ctx: CanvasRenderingContext2D, el: Elemento, w: number,
 
     ctx.font = 'bold 13px sans-serif';
     ctx.fillText(`${grados}°`, v.x + 32, v.y + 4);
+  } else if (el.tipo === 'texto') {
+    const p = px(el.punto);
+    ctx.font = `${TAMANO_TEXTO}px sans-serif`;
+    ctx.textBaseline = 'top';
+    const lineHeight = TAMANO_TEXTO * 1.25;
+    el.contenido.split('\n').forEach((linea, i) => ctx.fillText(linea, p.x, p.y + i * lineHeight));
   }
 }
 
@@ -149,8 +160,11 @@ export function PizarraFlotante({ roomId, nombre = 'Alguien' }: { roomId: string
   const [fondo, setFondo] = useState<Fondo>('blanco');
   const [elementos, setElementos] = useState<Elemento[]>([]);
   const [cursoresRemotos, setCursoresRemotos] = useState<Record<string, CursorRemoto>>({});
+  const [textoEditando, setTextoEditando] = useState<{ punto: Punto; valor: string } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contenedorRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const confirmandoTextoRef = useRef(false);
   const supabase = useMemo(() => createClient(), []);
   const canalRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const peerIdRef = useRef(crypto.randomUUID());
@@ -266,6 +280,12 @@ export function PizarraFlotante({ roomId, nombre = 'Alguien' }: { roomId: string
       return;
     }
 
+    if (herramienta === 'texto') {
+      confirmandoTextoRef.current = false;
+      setTextoEditando({ punto: p, valor: '' });
+      return;
+    }
+
     if (herramienta === 'angulo') {
       if (anguloPasoRef.current === 0) {
         anguloVerticeRef.current = p;
@@ -355,6 +375,27 @@ export function PizarraFlotante({ roomId, nombre = 'Alguien' }: { roomId: string
     } else {
       redibujar();
     }
+  }
+
+  // Se llama tanto desde Enter como desde el blur del textarea al
+  // desmontarse — confirmandoTextoRef evita que, si las dos
+  // dispararan para la misma edición, se duplique el texto.
+  function confirmarTexto() {
+    if (confirmandoTextoRef.current) return;
+    confirmandoTextoRef.current = true;
+
+    if (textoEditando && textoEditando.valor.trim()) {
+      const nuevo: TextoElemento = { id: crypto.randomUUID(), tipo: 'texto', color, punto: textoEditando.punto, contenido: textoEditando.valor };
+      const nuevos = [...elementos, nuevo];
+      setElementos(nuevos);
+      enviarEstado(nuevos, fondo);
+    }
+    setTextoEditando(null);
+  }
+
+  function cancelarTexto() {
+    confirmandoTextoRef.current = true;
+    setTextoEditando(null);
   }
 
   function limpiarTodo() {
@@ -471,6 +512,26 @@ export function PizarraFlotante({ roomId, nombre = 'Alguien' }: { roomId: string
             </span>
           </div>
         ))}
+        {textoEditando && (
+          <textarea
+            ref={textareaRef}
+            autoFocus
+            value={textoEditando.valor}
+            onChange={(e) => setTextoEditando({ ...textoEditando, valor: e.target.value })}
+            onBlur={confirmarTexto}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') cancelarTexto();
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                confirmarTexto();
+              }
+            }}
+            placeholder="Escribí y tocá fuera (o Enter) para confirmar"
+            rows={1}
+            className="absolute z-20 min-w-[140px] resize rounded border-2 border-brand-500 bg-white px-1.5 py-1 leading-tight shadow-lg outline-none"
+            style={{ left: `${textoEditando.punto.x * 100}%`, top: `${textoEditando.punto.y * 100}%`, color, fontSize: TAMANO_TEXTO }}
+          />
+        )}
       </div>
     </div>
   );
