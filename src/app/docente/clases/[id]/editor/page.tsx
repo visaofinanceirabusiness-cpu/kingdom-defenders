@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ActivityCard } from '@/components/docente/activity-card';
 import { PublishLessonButton } from '@/components/docente/publish-lesson-button';
+import { PizarraFlotante } from '@/components/pizarra/pizarra-flotante';
 
 const TEXTO_SECCION: Record<string, { titulo: string; icono: string }> = {
   introduction: { titulo: 'Introducción', icono: '👋' },
@@ -60,6 +61,7 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
             {esManual ? '→ Ir a construirla' : '← Ir al análisis'}
           </Link>
         </Card>
+        <PizarraFlotante roomId={lessonId} />
       </div>
     );
   }
@@ -168,6 +170,8 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
           <PublishLessonButton lessonId={lessonId} />
         </div>
       )}
+
+      <PizarraFlotante roomId={lessonId} />
     </div>
   );
 }

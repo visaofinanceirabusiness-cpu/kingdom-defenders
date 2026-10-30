@@ -58,7 +58,11 @@ export default async function SesionPage({ params }: { params: Promise<{ session
         )}
       </div>
 
-      <PizarraFlotante roomId={session.id} />
+      {/* La sala es la CLASE (lesson_id), no la sesión — así el docente
+          la tiene activa desde el editor sin depender de un link por
+          alumno, y cualquiera que entre con el código de esta clase
+          cae en la misma pizarra. */}
+      <PizarraFlotante roomId={session.lesson_id} />
     </main>
   );
 }

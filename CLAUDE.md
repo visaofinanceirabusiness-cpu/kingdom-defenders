@@ -159,12 +159,17 @@ clase, accesible todo el tiempo vía un círculo flotante, minimizable.
   (`pedir-estado`) y el otro responde si lo tiene (`estado`) — así un
   recién llegado se pone al día sin necesitar guardar nada. Si las dos
   pestañas se cierran, el contenido se pierde (a propósito).
-- Montada en `/clase/sesion/[sessionId]` (lado alumno, sin cuenta) y
-  en la nueva `/docente/sesion/[sessionId]` (lado docente — página
-  mínima pensada para acompañar una sesión en vivo, para el caso de
-  profesor particular). Mismo `roomId` = misma pizarra. Linkeada desde
-  `AsignarSesionButton` (al crear la sesión) y desde `resultados/`
-  (por cada fila de alumno).
+- Montada en `/clase/sesion/[sessionId]` (lado alumno, sin cuenta),
+  `/docente/clases/[id]/editor` (el docente ya está ahí siempre que
+  trabaja la clase) y `/docente/sesion/[sessionId]` (vista en vivo
+  sin distracciones, para acompañar a un alumno puntual).
+  **`roomId` = `lessons.id` SIEMPRE, no `sessions.id`** — se corrigió
+  después de que el usuario reportara que no lograba "encontrarse"
+  con el alumno: al ser la sesión (creada recién cuando el alumno
+  entra con el código) no había forma de que el docente supiera ese
+  id de antemano. Con la clase como sala, el docente ya la tiene
+  abierta por default (editor) y cualquier alumno que entre con el
+  código de esa clase cae en la misma pizarra sin coordinar nada.
 - El canal solo se abre cuando el docente/alumno abre la pizarra (no
   al cargar la página) para no gastar una conexión de Realtime por
   cada uno que ni la toca.

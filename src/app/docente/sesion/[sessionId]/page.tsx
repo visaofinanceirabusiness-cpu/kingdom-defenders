@@ -5,10 +5,12 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PizarraFlotante } from '@/components/pizarra/pizarra-flotante';
 
-// Vista en vivo del docente para una sesión puntual — pensada para
-// acompañar a un alumno en el momento (clase particular) con la
-// pizarra compartida abierta. No reemplaza /resultados (eso es la
-// foto final); esto es "estoy ahora mismo con este alumno".
+// Vista en vivo del docente para acompañar a un alumno en el momento
+// (clase particular) con la pizarra compartida abierta — la sala de
+// la pizarra es la CLASE (lesson.id), no esta sesión puntual, así
+// coincide con la que usa el editor y con la del alumno. No
+// reemplaza /resultados (eso es la foto final); esto es "estoy ahora
+// mismo con este alumno".
 export default async function SesionEnVivoDocentePage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params;
   const supabase = await createClient();
@@ -57,7 +59,7 @@ export default async function SesionEnVivoDocentePage({ params }: { params: Prom
         </p>
       </Card>
 
-      <PizarraFlotante roomId={session.id} />
+      <PizarraFlotante roomId={lesson.id} />
     </div>
   );
 }
