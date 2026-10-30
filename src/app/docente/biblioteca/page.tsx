@@ -67,6 +67,9 @@ export default async function BibliotecaPage() {
                     <Link href={`/docente/clases/${clase.id}/editar`} className="text-sm font-semibold text-brand-600 hover:underline">
                       Editar datos
                     </Link>
+                    <a href={`/api/clases/${clase.id}/pdf`} className="text-sm font-semibold text-brand-600 hover:underline">
+                      PDF
+                    </a>
                     <DuplicarLessonButton lessonId={clase.id} />
                     <DeleteLessonButton lessonId={clase.id} lessonTitle={clase.title} />
                   </div>

@@ -96,11 +96,16 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
             Editar título/materia/tema →
           </Link>
         </div>
-        {esManual && !publicada && (
-          <Link href={`/docente/clases/${lessonId}/construir`} className="font-semibold text-brand-600 hover:underline">
-            + Agregar más contenido
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          <a href={`/api/clases/${lessonId}/pdf`} className="font-semibold text-brand-600 hover:underline">
+            📄 Descargar PDF
+          </a>
+          {esManual && !publicada && (
+            <Link href={`/docente/clases/${lessonId}/construir`} className="font-semibold text-brand-600 hover:underline">
+              + Agregar más contenido
+            </Link>
+          )}
+        </div>
       </div>
 
       {esDemo && (

@@ -225,6 +225,26 @@ evaluación y actividades siguen siendo únicas, como antes.
   ficha individual con `redirectAfter` porque si se borra desde la
   ficha hay que salir de esa página).
 
+## Exportar clase a PDF — hecho
+- `@react-pdf/renderer` (texto real generado en el servidor, no una
+  captura de pantalla con Puppeteer — mucho más liviano y sin
+  dependencias nativas, apto para el runtime de Vercel sin configurar
+  nada aparte).
+- `lib/pdf/clase-pdf.tsx`: documento con introducción, todos los
+  temas (teoría + ejemplo) y evaluación completos. Las actividades
+  interactivas (Memotest/Ordenar) solo se listan por título — no
+  tiene sentido "imprimirlas", se juegan en la app — pero Trivia,
+  Verdadero/Falso y Completar SÍ van con su contenido completo
+  (preguntas, opciones, respuesta correcta marcada), porque funcionan
+  bien como cuestionario/guía de estudio en papel.
+  **Ojo: la fuente estándar de PDF (Helvetica) no tiene glifos de
+  emoji** — a diferencia del resto de la UI, este documento no usa
+  ningún emoji en el texto (se probó y salían como cuadrados vacíos).
+- `api/clases/[id]/pdf/route.tsx` (con JSX, por eso `.tsx` y no
+  `.ts`): arma el PDF y lo devuelve con `Content-Disposition:
+  attachment` para que descargue directo, sin pasar por ningún visor.
+- Link "📄 Descargar PDF" en el editor y "PDF" en la biblioteca.
+
 ## Estado del proyecto (ver spec completo en el primer prompt del usuario)
 
 **Fase 1 — hecha:**
