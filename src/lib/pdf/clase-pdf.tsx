@@ -6,7 +6,7 @@
 // sentido en la app, no en un papel), salvo Trivia/Verdadero-Falso/
 // Completar que si van con su contenido porque funcionan como guía
 // de estudio o cuestionario impreso.
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
 import { GAME_DEFINITIONS, isValidGameType } from '@/lib/games/registry';
 
 // 'Helvetica' es una de las 14 fuentes estándar de PDF, ya incluida
@@ -24,6 +24,8 @@ const styles = StyleSheet.create({
   question: { fontSize: 10, fontWeight: 700, marginTop: 6 },
   option: { fontSize: 9.5, marginLeft: 10 },
   correct: { fontSize: 9, color: '#059669', marginTop: 2 },
+  image: { maxWidth: 260, maxHeight: 180, marginTop: 6, marginBottom: 6, objectFit: 'contain' },
+  imageSmall: { maxWidth: 160, maxHeight: 110, marginTop: 4, marginBottom: 4, objectFit: 'contain' },
   footer: { position: 'absolute', bottom: 20, left: 40, right: 40, fontSize: 8, color: '#9ca3af', textAlign: 'center' },
 });
 
@@ -52,21 +54,27 @@ export function ClasePdf({
           {[lesson.subject, lesson.topic, lesson.school_year].filter(Boolean).join(' · ') || 'AulaPlay'}
         </Text>
 
-        {introduccion && (
-          <View>
-            <Text style={styles.sectionTitle}>Introducción</Text>
-            <Text style={styles.paragraph}>{(introduccion.content as { text?: string } | null)?.text ?? ''}</Text>
-          </View>
-        )}
+        {introduccion &&
+          (() => {
+            const contenido = introduccion.content as { text?: string; image_url?: string } | null;
+            return (
+              <View>
+                <Text style={styles.sectionTitle}>Introducción</Text>
+                {contenido?.image_url && <Image src={contenido.image_url} style={styles.image} />}
+                <Text style={styles.paragraph}>{contenido?.text ?? ''}</Text>
+              </View>
+            );
+          })()}
 
         {temas.length > 0 && (
           <View>
             <Text style={styles.sectionTitle}>Temas</Text>
             {temas.map((tema, i) => {
-              const contenido = tema.content as { theory?: string; examples?: string } | null;
+              const contenido = tema.content as { theory?: string; examples?: string; image_url?: string } | null;
               return (
                 <View key={i} wrap={false}>
                   <Text style={styles.temaTitle}>{tema.title}</Text>
+                  {contenido?.image_url && <Image src={contenido.image_url} style={styles.image} />}
                   <Text style={styles.label}>TEORÍA</Text>
                   <Text style={styles.paragraph}>{contenido?.theory ?? ''}</Text>
                   <Text style={styles.label}>EJEMPLOS</Text>
@@ -104,7 +112,9 @@ function ActividadImpresa({ actividad }: { actividad: Actividad }) {
   const label = definicion?.label ?? actividad.game_template_id;
 
   if (actividad.game_template_id === 'trivia') {
-    const config = actividad.config as { questions?: { question: string; options: string[]; correct_answer: string }[] };
+    const config = actividad.config as {
+      questions?: { question: string; options: string[]; correct_answer: string; image_url?: string }[];
+    };
     return (
       <View style={styles.activityBox} wrap={false}>
         <Text style={styles.activityTitle}>
@@ -115,6 +125,7 @@ function ActividadImpresa({ actividad }: { actividad: Actividad }) {
             <Text style={styles.question}>
               {i + 1}. {q.question}
             </Text>
+            {q.image_url && <Image src={q.image_url} style={styles.imageSmall} />}
             {q.options.map((o, j) => (
               <Text key={j} style={styles.option}>
                 {o === q.correct_answer ? '[correcta] ' : '- '}
@@ -128,32 +139,38 @@ function ActividadImpresa({ actividad }: { actividad: Actividad }) {
   }
 
   if (actividad.game_template_id === 'true_or_false') {
-    const config = actividad.config as { statements?: { statement: string; is_true: boolean }[] };
+    const config = actividad.config as { statements?: { statement: string; is_true: boolean; image_url?: string }[] };
     return (
       <View style={styles.activityBox} wrap={false}>
         <Text style={styles.activityTitle}>
           {label} — {actividad.title}
         </Text>
         {(config.statements ?? []).map((s, i) => (
-          <Text key={i} style={styles.question}>
-            {i + 1}. {s.statement} — <Text style={styles.correct}>{s.is_true ? 'Verdadero' : 'Falso'}</Text>
-          </Text>
+          <View key={i}>
+            <Text style={styles.question}>
+              {i + 1}. {s.statement} — <Text style={styles.correct}>{s.is_true ? 'Verdadero' : 'Falso'}</Text>
+            </Text>
+            {s.image_url && <Image src={s.image_url} style={styles.imageSmall} />}
+          </View>
         ))}
       </View>
     );
   }
 
   if (actividad.game_template_id === 'fill_in_the_blank') {
-    const config = actividad.config as { items?: { text_with_blank: string; correct_answer: string }[] };
+    const config = actividad.config as { items?: { text_with_blank: string; correct_answer: string; image_url?: string }[] };
     return (
       <View style={styles.activityBox} wrap={false}>
         <Text style={styles.activityTitle}>
           {label} — {actividad.title}
         </Text>
         {(config.items ?? []).map((it, i) => (
-          <Text key={i} style={styles.question}>
-            {i + 1}. {it.text_with_blank.replace('___', `[${it.correct_answer}]`)}
-          </Text>
+          <View key={i}>
+            <Text style={styles.question}>
+              {i + 1}. {it.text_with_blank.replace('___', `[${it.correct_answer}]`)}
+            </Text>
+            {it.image_url && <Image src={it.image_url} style={styles.imageSmall} />}
+          </View>
         ))}
       </View>
     );
