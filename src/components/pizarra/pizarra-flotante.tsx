@@ -350,9 +350,10 @@ export function PizarraFlotante({ roomId }: { roomId: string }) {
         type="button"
         onClick={() => setAbierta(true)}
         title="Abrir pizarra"
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-2xl text-white shadow-lg transition-transform hover:scale-105"
+        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-brand-600 py-3 pl-3 pr-4 text-white shadow-xl shadow-brand-600/30 transition-transform hover:scale-105"
       >
-        🖊️
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-xl">🖊️</span>
+        <span className="text-sm font-bold">Pizarra</span>
       </button>
     );
   }

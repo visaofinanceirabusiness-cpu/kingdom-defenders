@@ -48,8 +48,10 @@ export function AsignarSesionButton({ lessonId, alumnos }: { lessonId: string; a
           onFocus={(e) => e.currentTarget.select()}
           className="mt-1 w-full rounded border border-border bg-surface px-2 py-1 text-xs"
         />
-        <a href={`/docente/sesion/${sessionId}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs font-semibold text-brand-700 hover:underline">
-          🖊️ Abrir pizarra en vivo para acompañarlo →
+        <a href={`/docente/sesion/${sessionId}`} target="_blank" rel="noopener noreferrer" className="mt-3 block">
+          <Button size="sm" className="w-full">
+            🖊️ Abrir pizarra en vivo para acompañarlo
+          </Button>
         </a>
       </div>
     );

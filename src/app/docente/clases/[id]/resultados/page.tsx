@@ -84,9 +84,9 @@ export default async function ResultadosPage({ params }: { params: Promise<{ id:
             {sessions && sessions.length > 0 ? (
               <ul className="space-y-2">
                 {sessions.map((s) => (
-                  <li key={s.id} className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
+                  <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-4 py-3">
                     <span className="font-medium">{nombrePorAlumno.get(s.student_id) ?? 'Alumno'}</span>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
                       {s.status === 'completed' ? (
                         <span className="font-bold text-brand-700">
                           {s.total_score}/{maxScoreTotal}
@@ -94,8 +94,11 @@ export default async function ResultadosPage({ params }: { params: Promise<{ id:
                       ) : (
                         <Badge tone="warning">En curso</Badge>
                       )}
-                      <Link href={`/docente/sesion/${s.id}`} className="text-xs font-semibold text-brand-600 hover:underline">
-                        🖊️ Pizarra
+                      <Link
+                        href={`/docente/sesion/${s.id}`}
+                        className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-700"
+                      >
+                        🖊️ Pizarra en vivo
                       </Link>
                     </div>
                   </li>
