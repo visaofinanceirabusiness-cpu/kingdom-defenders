@@ -33,8 +33,23 @@ export const GAME_DEFINITIONS: Record<GameTypeId, GameDefinition> = {
 
 export const GAME_TYPE_IDS = Object.keys(GAME_DEFINITIONS) as GameTypeId[];
 
+// De los 10 tipos del catálogo, estos son los que YA tienen un
+// componente de render implementado (ver src/components/games/) —
+// son los únicos que el generador de clases (Fase 2) le puede pedir a
+// la IA, para no terminar con una actividad guardada que la profesora
+// no puede ni previsualizar. Sumar un renderer nuevo es agregar su
+// id acá (y el componente, y el case en GameRenderer) — el resto del
+// catálogo (memory_match, relate, order, roulette, escape_room, race,
+// time_challenge) ya tiene su schema de configuración listo, falta
+// solo el componente visual.
+export const RENDERABLE_GAME_TYPE_IDS: GameTypeId[] = ['trivia', 'true_or_false', 'fill_in_the_blank'];
+
 export function isValidGameType(id: string): id is GameTypeId {
   return id in GAME_DEFINITIONS;
+}
+
+export function isRenderableGameType(id: string): boolean {
+  return (RENDERABLE_GAME_TYPE_IDS as string[]).includes(id);
 }
 
 export type ValidationResult =

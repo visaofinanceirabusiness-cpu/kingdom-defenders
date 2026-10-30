@@ -5,8 +5,8 @@
 // llamador que todo salió bien). La IA nunca recibe permiso para
 // ejecutar nada: esto es texto entrada, JSON validado salida, punto.
 import Anthropic from '@anthropic-ai/sdk';
-import type { AIProvider } from './provider';
-import { materialAnalysisSchema, type MaterialAnalysis } from './schemas';
+import type { AIProvider, GenerateLessonInput } from './provider';
+import { lessonGenerationSchema, materialAnalysisSchema, type LessonGeneration, type MaterialAnalysis } from './schemas';
 
 const MODEL = 'claude-sonnet-5';
 
@@ -24,6 +24,42 @@ export class AnthropicAIProvider implements AIProvider {
 
   constructor(apiKey: string) {
     this.client = new Anthropic({ apiKey });
+  }
+
+  // Núcleo compartido: le manda el prompt a Claude, le pide JSON puro,
+  // lo parsea y lo valida contra el schema que le pasen. Tanto
+  // analyzeMaterial como generateLesson pasan por acá — nunca se
+  // devuelve nada de Claude sin pasar por un safeParse de Zod primero.
+  private async pedirJsonValidado<T>(prompt: string, schema: { safeParse: (v: unknown) => { success: boolean; data?: T; error?: { issues: { message: string }[] } } }): Promise<T> {
+    const response = await this.client.messages.create({
+      model: MODEL,
+      max_tokens: 4000,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const textBlock = response.content.find((block) => block.type === 'text');
+
+    if (!textBlock || textBlock.type !== 'text') {
+      throw new Error('Claude no devolvió una respuesta de texto.');
+    }
+
+    let json: unknown;
+
+    try {
+      json = extraerJson(textBlock.text);
+    } catch {
+      throw new Error('La respuesta de Claude no es JSON válido.');
+    }
+
+    const resultado = schema.safeParse(json);
+
+    if (!resultado.success || resultado.data === undefined) {
+      throw new Error(
+        `La respuesta de Claude no tiene la forma esperada: ${resultado.error?.issues.map((i) => i.message).join('; ') ?? 'error desconocido'}`
+      );
+    }
+
+    return resultado.data;
   }
 
   async analyzeMaterial(input: {
@@ -51,34 +87,50 @@ Material:
 ${input.text.slice(0, 12000)}
 """`;
 
-    const response = await this.client.messages.create({
-      model: MODEL,
-      max_tokens: 2000,
-      messages: [{ role: 'user', content: prompt }],
-    });
+    return this.pedirJsonValidado(prompt, materialAnalysisSchema);
+  }
 
-    const textBlock = response.content.find((block) => block.type === 'text');
+  async generateLesson(input: GenerateLessonInput): Promise<LessonGeneration> {
+    const prompt = `Sos un asistente pedagógico para docentes de nivel secundario. A partir del análisis y el material de abajo, armá una clase completa e interactiva. Devolvé ÚNICAMENTE un JSON (sin texto antes ni después, sin bloque de markdown) con esta forma exacta:
 
-    if (!textBlock || textBlock.type !== 'text') {
-      throw new Error('Claude no devolvió una respuesta de texto.');
+{
+  "introduction": "texto de introducción al tema, motivador, 2-3 párrafos",
+  "theory": "explicación teórica clara, adaptada al nivel indicado",
+  "examples": "2-3 ejemplos prácticos resueltos",
+  "activities": [
+    {
+      "gameType": "trivia" | "true_or_false" | "fill_in_the_blank",
+      "title": "título de la actividad",
+      "config": { ... configuración específica del tipo de juego, ver abajo ... }
     }
+  ],
+  "finalChallenge": {
+    "gameType": "trivia" | "true_or_false" | "fill_in_the_blank",
+    "title": "título del desafío final (más difícil que las actividades anteriores)",
+    "config": { ... }
+  },
+  "evaluationSummary": "breve resumen de qué evalúa esta clase y cómo"
+}
 
-    let json: unknown;
+Generá entre 2 y 4 actividades (no solo una), todas del tema de la clase, variando el gameType cuando tenga sentido.
 
-    try {
-      json = extraerJson(textBlock.text);
-    } catch {
-      throw new Error('La respuesta de Claude no es JSON válido.');
-    }
+Formato de "config" según gameType:
+- trivia: { "duration_seconds": number, "questions": [{ "question": string, "options": string[] (2 a 6), "correct_answer": string (debe estar en options), "explanation": string }] }
+- true_or_false: { "statements": [{ "statement": string, "is_true": boolean, "explanation": string }] }
+- fill_in_the_blank: { "items": [{ "text_with_blank": string (con "___" marcando el espacio), "correct_answer": string, "hints": string[] }] }
 
-    const resultado = materialAnalysisSchema.safeParse(json);
+Datos de la clase:
+- Materia: ${input.subject}
+- Tema: ${input.topic}
+- Resumen: ${input.summary}
+- Objetivos de aprendizaje: ${input.learningObjectives.join('; ')}
+- Nivel de dificultad: ${input.difficulty}
 
-    if (!resultado.success) {
-      throw new Error(
-        `La respuesta de Claude no tiene la forma esperada: ${resultado.error.issues.map((i) => i.message).join('; ')}`
-      );
-    }
+Material original (para que las actividades sean fieles al contenido real, no genéricas):
+"""
+${input.text.slice(0, 10000)}
+"""`;
 
-    return resultado.data;
+    return this.pedirJsonValidado(prompt, lessonGenerationSchema);
   }
 }

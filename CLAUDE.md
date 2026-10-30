@@ -19,8 +19,11 @@ generadas por IA. Docentes de nivel secundario, cualquier materia.
   `fxttpvaobpjogchkhpdp`, proyecto separado de cualquier otro producto
 - Validación: Zod en todos los límites (formularios, API routes,
   configuración de juegos, respuestas de IA)
-- IA: Anthropic Claude vía capa propia (`src/lib/ai/`), con modo DEMO
-  automático si no hay `ANTHROPIC_API_KEY`
+- IA: ChatGPT (OpenAI) vía capa propia (`src/lib/ai/`) — decisión del
+  producto: OpenAI genera el contenido de las clases, Anthropic queda
+  como alternativa en el código (no es el default). Modo DEMO
+  automático si no hay ninguna de las dos claves. Orden de prioridad
+  en `service.ts`: `OPENAI_API_KEY` > `ANTHROPIC_API_KEY` > demo.
 - Next 16 usa el archivo `src/proxy.ts` (no `middleware.ts`, convención
   vieja deprecada) para refrescar la sesión de Supabase en cada
   request
@@ -44,10 +47,10 @@ generadas por IA. Docentes de nivel secundario, cualquier materia.
   se implemente el render, Fase 2/3). Nunca un `switch` de game_type
   hardcodeado en otro lado.
 - IA (`src/lib/ai/`): todo pasa por la interfaz `AIProvider`
-  (`provider.ts`) — `AnthropicAIProvider` (real) o `DemoProvider`
-  (sin API key). `service.ts` elige cuál según haya o no
-  `ANTHROPIC_API_KEY`. Toda respuesta de IA se valida con Zod
-  (`schemas.ts`) antes de usarse — nunca se confía en el JSON tal
+  (`provider.ts`) — `OpenAIProvider` (default si hay clave),
+  `AnthropicAIProvider` (alternativa) o `DemoProvider` (sin ninguna
+  clave). `service.ts` elige cuál. Toda respuesta de IA se valida con
+  Zod (`schemas.ts`) antes de usarse — nunca se confía en el JSON tal
   cual viene. La IA NUNCA genera código ejecutable (JS/HTML), solo
   configuración JSON validada contra los schemas de juegos.
 - Documentos (`src/lib/documents/extract.ts`): `mammoth` para .docx,
@@ -62,29 +65,66 @@ generadas por IA. Docentes de nivel secundario, cualquier materia.
 - `src/types/database.ts` es generado (`mcp__Supabase__generate_typescript_types`)
   — no editar a mano, regenerar si cambia el esquema.
 
-## Estado del proyecto (Fase 1 del MVP — ver spec completo en el primer prompt del usuario)
-Implementado:
+## Estado del proyecto (ver spec completo en el primer prompt del usuario)
+
+**Fase 1 — hecha:**
 - Identidad visual (Tailwind theme, landing)
 - Esquema completo de base de datos (12 tablas) + RLS + bucket privado
   de materiales + catálogo inicial de 10 tipos de juego
   (`game_templates`, con `config_schema` en JSON Schema espejando los
   Zod schemas de `src/lib/games/schemas.ts`)
-- Auth docente (registro/login/logout) con Supabase Auth
+- Auth docente (registro/login/logout) con Supabase Auth — el perfil
+  se crea con un trigger en `auth.users` (`handle_new_user`,
+  SECURITY DEFINER), NO desde el cliente después de `signUp()`: este
+  proyecto exige confirmar el email antes de dar sesión activa, así
+  que un insert desde el cliente justo después de registrarse corre
+  sin sesión y la política de RLS lo rechaza (bug real, encontrado
+  probando el deploy — ver commit del fix).
 - Dashboard docente (métricas reales, no inventadas)
 - Mis cursos (crear/listar/detalle)
 - Crear nueva clase — Paso 1 (cargar Word/PDF o escribir un tema) +
-  Paso 2 (ver y corregir el análisis que arma la IA — modo DEMO si no
-  hay API key)
-- Capa de IA y motor de juegos con su estructura lista (providers,
-  registry, schemas) para que la Fase 2 los use de verdad
+  Paso 2 (ver y corregir el análisis que arma la IA)
+
+**Fase 2 — hecha (parcial, ver "Pendiente" abajo):**
+- Generación completa de la clase (`api/lessons/[id]/generate`):
+  introducción, teoría, ejemplos, actividades, desafío final y
+  evaluación, a partir del análisis aprobado — se guarda como
+  `lesson_sections` + `activities`. Cada actividad se valida DOS
+  veces antes de guardarse: forma general (`lessonGenerationSchema`,
+  en el proveedor de IA) y configuración específica de su tipo de
+  juego (`validateGameConfig`, `lib/games/registry.ts`) — si algo no
+  valida, no se guarda nada (todo o nada).
+- Editor de clase (`docente/clases/[id]/editor`): ve las secciones
+  generadas, previsualiza cada actividad jugándola de verdad (no una
+  maqueta), puede eliminar actividades, y publicar (genera
+  `access_code` de 6 caracteres + `published_at`).
+- Render real de 3 de los 10 tipos de juego: **Trivia**, **Verdadero
+  o Falso**, **Completar** (`src/components/games/`) — cada uno con
+  pantalla de intro, mecánica interactiva, feedback visual inmediato,
+  puntaje y resultado final, como pide el spec. `GameRenderer`
+  (`game-renderer.tsx`) es el único lugar que decide qué componente
+  usar según `game_template_id` — mismo patrón "un solo lugar
+  central" que `GameRegistry`.
+- `RENDERABLE_GAME_TYPE_IDS` (`lib/games/registry.ts`) limita a estos
+  3 lo que la IA puede proponer al generar una clase — para no
+  terminar con una actividad guardada que nadie puede previsualizar
+  todavía. Memotest/Relacionar/Ordenar/Ruleta/Escape Room/Carrera/
+  Contrarreloj ya tienen su schema de configuración listo
+  (`lib/games/schemas.ts`), les falta el componente de render.
 
 Pendiente (fases siguientes, ver spec original):
-- Fase 2: generación completa de la clase (secciones, actividades,
-  juegos) a partir del análisis aprobado; editor de clase; render de
-  los 10 juegos
-- Fase 3: acceso de alumnos por código, ejecución de juegos, registro
-  de resultados, reportes
+- Resto de los 7 componentes de render de juegos
+- Edición fina de las secciones de texto generadas (hoy se ven, se
+  puede borrar una actividad, pero no hay edición inline del texto de
+  introducción/teoría/ejemplos — hay que volver a generar para
+  cambiarlos)
+- Fase 3: acceso de alumnos por código, ejecución de juegos con
+  persistencia de resultados (`sessions`/`student_responses`),
+  reportes para el docente
 - Fase 4: pulido, seguridad, responsive, optimización
+- Generación de imágenes para ilustrar actividades (mencionado por el
+  usuario, no implementado — quedaría como un método nuevo en
+  `AIProvider`, ej. `generateImage`, con su propio proveedor)
 
 ## Limitaciones conocidas de este entorno de desarrollo
 - Este sandbox NO tiene salida de red directa a `*.supabase.co` (solo

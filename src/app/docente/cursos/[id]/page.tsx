@@ -60,9 +60,14 @@ export default async function CursoDetallePage({ params }: { params: Promise<{ i
           {clases && clases.length > 0 ? (
             <ul className="space-y-2">
               {clases.map((clase) => (
-                <li key={clase.id} className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
-                  <span className="font-medium">{clase.title}</span>
-                  <EstadoBadge status={clase.status} />
+                <li key={clase.id}>
+                  <Link
+                    href={`/docente/clases/${clase.id}/${clase.status === 'draft' ? 'analisis' : 'editor'}`}
+                    className="flex items-center justify-between rounded-xl border border-border px-4 py-3 transition-colors hover:border-brand-300 hover:bg-brand-50"
+                  >
+                    <span className="font-medium">{clase.title}</span>
+                    <EstadoBadge status={clase.status} />
+                  </Link>
                 </li>
               ))}
             </ul>

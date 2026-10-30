@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getAIProvider } from '@/lib/ai/service';
 import { Card } from '@/components/ui/card';
 import { LessonAnalysisForm } from '@/components/docente/lesson-analysis-form';
+import { GenerateLessonButton } from '@/components/docente/generate-lesson-button';
 
 export default async function AnalisisClasePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -51,12 +52,11 @@ export default async function AnalisisClasePage({ params }: { params: Promise<{ 
       </Card>
 
       <Card className="mt-6 bg-brand-50/50">
-        <p className="text-sm text-foreground/70">
-          <strong>Qué sigue:</strong> este análisis queda guardado como borrador de la clase. La generación completa
-          (explicación teórica, ejemplos, actividades, juegos y evaluación a partir de este análisis) es la{' '}
-          <strong>Fase 2</strong> del desarrollo, que todavía no está implementada — por ahora podés revisar y
-          corregir la información acá.
+        <p className="mb-4 text-sm text-foreground/70">
+          Cuando el análisis esté bien, generá la clase completa: introducción, teoría, ejemplos, actividades
+          interactivas, desafío final y evaluación.
         </p>
+        <GenerateLessonButton lessonId={lesson.id} />
       </Card>
     </div>
   );
