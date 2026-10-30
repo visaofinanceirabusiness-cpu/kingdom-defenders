@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { NewLessonForm } from '@/components/docente/new-lesson-form';
+import { ModoCreacionClase } from '@/components/docente/modo-creacion-clase';
 
 export default async function NuevaClasePage({
   searchParams,
@@ -25,11 +25,11 @@ export default async function NuevaClasePage({
     <div className="mx-auto max-w-2xl">
       <h1 className="text-3xl font-black text-foreground">+ Crear nueva clase</h1>
       <p className="mt-1 text-foreground/60">
-        Paso 1 de 2 — cargá un material o escribí el tema, y la IA arma un primer análisis para que revises.
+        Con IA: cargá un material o escribí el tema y revisás lo que arma. Manual: vos escribís y armás todo, sin IA.
       </p>
 
       <div className="mt-6">
-        <NewLessonForm courses={cursos ?? []} initialCourseId={courseId} />
+        <ModoCreacionClase courses={cursos ?? []} initialCourseId={courseId} />
       </div>
     </div>
   );

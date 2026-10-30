@@ -25,7 +25,7 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
 
   const { data: lesson } = await supabase
     .from('lessons')
-    .select('id, title, subject, topic, status, access_code, generation_error')
+    .select('id, title, subject, topic, status, access_code, generation_error, material_id')
     .eq('id', lessonId)
     .eq('teacher_id', user.id)
     .maybeSingle();
@@ -40,18 +40,24 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
   ]);
 
   if (!secciones || secciones.length === 0) {
+    const esManual = !lesson.material_id;
     return (
       <div className="mx-auto max-w-2xl">
         <Card className="flex flex-col items-center gap-3 py-12 text-center">
-          <span className="text-4xl">🪄</span>
-          <h1 className="text-xl font-bold">Esta clase todavía no se generó</h1>
+          <span className="text-4xl">{esManual ? '✍️' : '🪄'}</span>
+          <h1 className="text-xl font-bold">Esta clase todavía no tiene contenido</h1>
           <p className="text-foreground/60">
-            {lesson.generation_error
-              ? `El último intento falló: ${lesson.generation_error}`
-              : 'Volvé al análisis y generá la clase completa primero.'}
+            {esManual
+              ? 'Es una clase manual — agregá las secciones y actividades a mano.'
+              : lesson.generation_error
+                ? `El último intento falló: ${lesson.generation_error}`
+                : 'Volvé al análisis y generá la clase completa primero.'}
           </p>
-          <Link href={`/docente/clases/${lessonId}/analisis`} className="font-semibold text-brand-600 hover:underline">
-            ← Ir al análisis
+          <Link
+            href={esManual ? `/docente/clases/${lessonId}/construir` : `/docente/clases/${lessonId}/analisis`}
+            className="font-semibold text-brand-600 hover:underline"
+          >
+            {esManual ? '→ Ir a construirla' : '← Ir al análisis'}
           </Link>
         </Card>
       </div>
@@ -65,13 +71,17 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
     actividadesPorSeccion.set(actividad.lesson_section_id ?? '', lista);
   }
 
-  const esDemo = getAIProvider().isDemo;
+  const esManual = !lesson.material_id;
+  const esDemo = !esManual && getAIProvider().isDemo;
   const publicada = lesson.status === 'published';
 
   return (
     <div className="mx-auto max-w-3xl">
-      <Link href={`/docente/clases/${lessonId}/analisis`} className="text-sm font-semibold text-brand-600 hover:underline">
-        ← Volver al análisis
+      <Link
+        href={esManual ? `/docente/biblioteca` : `/docente/clases/${lessonId}/analisis`}
+        className="text-sm font-semibold text-brand-600 hover:underline"
+      >
+        {esManual ? '← Volver a la biblioteca' : '← Volver al análisis'}
       </Link>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
@@ -80,8 +90,14 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
           <div className="mt-2 flex flex-wrap gap-2">
             {lesson.subject && <Badge tone="brand">{lesson.subject}</Badge>}
             <Badge tone={publicada ? 'success' : 'warning'}>{publicada ? '✅ Publicada' : 'Borrador'}</Badge>
+            {esManual && <Badge tone="accent">✍️ Hecha a mano</Badge>}
           </div>
         </div>
+        {esManual && !publicada && (
+          <Link href={`/docente/clases/${lessonId}/construir`} className="font-semibold text-brand-600 hover:underline">
+            + Agregar más contenido
+          </Link>
+        )}
       </div>
 
       {esDemo && (
@@ -109,6 +125,14 @@ export default async function EditorClasePage({ params }: { params: Promise<{ id
                 <span>{TEXTO_SECCION[seccion.section_type].icono}</span>
                 {TEXTO_SECCION[seccion.section_type].titulo}
               </h2>
+              {(seccion.content as { image_url?: string } | null)?.image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={(seccion.content as { image_url?: string }).image_url}
+                  alt=""
+                  className="mb-3 max-h-64 w-full rounded-xl border border-border object-contain"
+                />
+              )}
               <p className="whitespace-pre-line text-foreground/80">
                 {(seccion.content as { text?: string } | null)?.text ?? ''}
               </p>

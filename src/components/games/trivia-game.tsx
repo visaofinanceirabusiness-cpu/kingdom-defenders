@@ -44,6 +44,9 @@ function Pregunta({
 
   return (
     <div>
+      {pregunta.image_url && (
+        <img src={pregunta.image_url} alt="" className="mb-4 max-h-56 w-full rounded-xl border border-border object-contain" />
+      )}
       <h3 className="mb-4 text-lg font-bold">{pregunta.question}</h3>
       <div className="grid gap-3 sm:grid-cols-2">
         {pregunta.options.map((opcion) => {

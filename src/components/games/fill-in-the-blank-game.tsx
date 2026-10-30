@@ -50,6 +50,9 @@ function Item({
 
   return (
     <div>
+      {item.image_url && (
+        <img src={item.image_url} alt="" className="mb-4 max-h-56 w-full rounded-xl border border-border object-contain" />
+      )}
       <p className="mb-4 text-lg font-bold">
         {partes[0]}
         <span className="mx-1 inline-block min-w-24 border-b-2 border-brand-400 text-center text-brand-700">

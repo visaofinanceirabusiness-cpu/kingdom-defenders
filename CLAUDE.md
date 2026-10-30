@@ -65,6 +65,46 @@ generadas por IA. Docentes de nivel secundario, cualquier materia.
 - `src/types/database.ts` es generado (`mcp__Supabase__generate_typescript_types`)
   — no editar a mano, regenerar si cambia el esquema.
 
+## Modo manual (sin IA) — hecho
+Pedido explícito del usuario: poder operar AulaPlay sin ninguna clave
+de IA configurada, con el docente armando la clase 100% a mano
+(texto, preguntas, respuestas correctas, imágenes).
+
+- `docente/clases/nueva`: toggle "🤖 Generar con IA" / "✍️ Crear
+  manualmente" (`ModoCreacionClase`). El modo manual
+  (`crearClaseManualAction`) crea la `lessons` directo, sin
+  `materials`, sin `aiService.analyzeMaterial` ni `generateLesson` —
+  cero llamadas a IA en todo el flujo. `material_id IS NULL` es la
+  señal que distingue una clase manual de una con IA en el resto del
+  código (editor, etc.), no hace falta una columna nueva.
+- `docente/clases/[id]/construir`: el constructor manual. Secciones de
+  texto (intro/teoría/ejemplos/evaluación) una por una
+  (`SeccionForm` + `agregarSeccionAction`, reemplaza la anterior del
+  mismo tipo si ya existía) y actividades (`AgregarActividadForm` +
+  `agregarActividadAction`) para los 3 tipos de juego ya renderizables
+  (Trivia, Verdadero/Falso, Completar) — arma el `config` a mano en el
+  cliente (preguntas, opciones, respuesta correcta, explicación) y lo
+  valida con el mismo `validateGameConfig` que usa la IA, así nunca se
+  guarda una actividad con forma inválida tampoco en modo manual.
+  Todas las actividades manuales van a una única sección `activity`
+  (se crea sola la primera vez que hace falta) — en manual no se
+  distingue actividad regular de desafío final.
+- Imágenes: bucket público `lesson-images` en Supabase Storage (tiene
+  que ser público porque los alumnos sin cuenta también las ven) +
+  `/api/images/upload` (valida tipo/tamaño, sube a la carpeta del
+  docente). `image_url` opcional sumado a los schemas de trivia/V-F/
+  completar y al `content` de las secciones de texto — los 3
+  componentes de juego y el jugador del alumno ya la muestran.
+  `ImageUploadField` (no controlado, para forms simples) e
+  `ImageUploadButton` (controlado, para filas de un array en estado)
+  son el mismo flujo de subida en dos variantes.
+- El editor (`/editor`) y el jugador del alumno (`/clase/sesion/[id]`)
+  no cambiaron: leen `lesson_sections`/`activities` tal cual, no les
+  importa si el contenido lo escribió la IA o el docente a mano.
+- Una clase manual SÍ cuenta contra el límite de "clases guardadas"
+  del plan (se chequea al crearla) — NO cuenta contra el límite de
+  generaciones de IA, porque no gasta ninguna.
+
 ## Estado del proyecto (ver spec completo en el primer prompt del usuario)
 
 **Fase 1 — hecha:**

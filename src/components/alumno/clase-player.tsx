@@ -17,7 +17,7 @@ const TEXTO_SECCION: Record<string, { titulo: string; icono: string }> = {
 type Seccion = { id: string; section_type: string; content: unknown; position: number };
 type Actividad = { id: string; lesson_section_id: string | null; title: string; game_template_id: string; config: unknown; max_score: number; position: number };
 
-type PasoTexto = { tipo: 'texto'; key: string; icono: string; titulo: string; texto: string };
+type PasoTexto = { tipo: 'texto'; key: string; icono: string; titulo: string; texto: string; imagenUrl?: string };
 type PasoJuego = { tipo: 'juego'; key: string; actividad: Actividad };
 
 export function ClasePlayer({ sessionId, secciones, actividades }: { sessionId: string; secciones: Seccion[]; actividades: Actividad[] }) {
@@ -26,9 +26,10 @@ export function ClasePlayer({ sessionId, secciones, actividades }: { sessionId: 
 
   for (const seccion of [...secciones].sort((a, b) => a.position - b.position)) {
     if (seccion.section_type in TEXTO_SECCION) {
-      const texto = (seccion.content as { text?: string } | null)?.text ?? '';
+      const contenido = seccion.content as { text?: string; image_url?: string } | null;
+      const texto = contenido?.text ?? '';
       if (!texto) continue;
-      pasos.push({ tipo: 'texto', key: seccion.id, ...TEXTO_SECCION[seccion.section_type], texto });
+      pasos.push({ tipo: 'texto', key: seccion.id, ...TEXTO_SECCION[seccion.section_type], texto, imagenUrl: contenido?.image_url });
     } else if (seccion.section_type === 'activity' || seccion.section_type === 'final_challenge') {
       const actividadesDeLaSeccion = actividades.filter((a) => a.lesson_section_id === seccion.id).sort((a, b) => a.position - b.position);
       for (const actividad of actividadesDeLaSeccion) {
@@ -116,6 +117,10 @@ export function ClasePlayer({ sessionId, secciones, actividades }: { sessionId: 
             <span>{paso.icono}</span>
             {paso.titulo}
           </h2>
+          {paso.imagenUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={paso.imagenUrl} alt="" className="mb-3 max-h-64 w-full rounded-xl border border-border object-contain" />
+          )}
           <p className="whitespace-pre-line text-foreground/80">{paso.texto}</p>
           <Button className="mt-6" onClick={avanzar}>
             Siguiente →

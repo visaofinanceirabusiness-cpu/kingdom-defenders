@@ -44,6 +44,9 @@ function Afirmacion({
 
   return (
     <div className="text-center">
+      {item.image_url && (
+        <img src={item.image_url} alt="" className="mx-auto mb-4 max-h-56 rounded-xl border border-border object-contain" />
+      )}
       <h3 className="mb-6 text-lg font-bold">{item.statement}</h3>
       <div className="flex justify-center gap-4">
         <button

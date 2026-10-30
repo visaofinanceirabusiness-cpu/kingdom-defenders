@@ -20,6 +20,7 @@ export const triviaConfigSchema = z.object({
         options: optionsMin2,
         correct_answer: z.string().min(1),
         explanation: z.string().optional(),
+        image_url: z.string().url().optional(),
       })
     )
     .min(1),
@@ -33,6 +34,7 @@ export const trueOrFalseConfigSchema = z.object({
         statement: z.string().min(1),
         is_true: z.boolean(),
         explanation: z.string().optional(),
+        image_url: z.string().url().optional(),
       })
     )
     .min(1),
@@ -64,6 +66,7 @@ export const fillInTheBlankConfigSchema = z.object({
         text_with_blank: z.string().min(1),
         correct_answer: z.string().min(1),
         hints: z.array(z.string()).optional(),
+        image_url: z.string().url().optional(),
       })
     )
     .min(1),
